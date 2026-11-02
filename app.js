@@ -260,7 +260,7 @@ function pintarHoy() {
     </div>
     <h1 class="gorda titulo-dia">Día ${estado.dia}, ${esc(dia.nombre.toLowerCase())}</h1>
     <div class="dias" role="group" aria-label="Elegir día">
-      ${dias.map((d) => `<button type="button" data-dia="${d.dia}" aria-pressed="${d.dia === estado.dia}">Día ${d.dia} ${esc(d.nombre)}</button>`).join('')}
+      ${dias.map((d) => `<button type="button" data-dia="${d.dia}" aria-pressed="${d.dia === estado.dia}"><b>${d.dia}</b>${esc(d.nombre)}</button>`).join('')}
     </div>`;
   if (!lista.length) {
     if (!estado.fraseReposo) estado.fraseReposo = azar(FRASES.reposo);
