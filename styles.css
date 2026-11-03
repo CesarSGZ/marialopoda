@@ -19,10 +19,12 @@
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html { background: var(--berenjena); -webkit-text-size-adjust: 100%; }
+html { height: 100%; overflow: hidden; background: var(--berenjena); -webkit-text-size-adjust: 100%; }
+/* La página no se desplaza: solo <main>. Así iOS no puede arrastrar el menú al estirar la pantalla o cerrar el teclado. */
 body {
-  margin: 0; min-height: 100dvh; background: var(--berenjena); color: var(--tinta);
-  font: 400 17px/1.45 'Figtree', -apple-system, sans-serif; overscroll-behavior-y: none;
+  position: fixed; inset: 0; width: 100%; height: 100dvh; margin: 0; overflow: hidden; display: flex; flex-direction: column;
+  background: var(--berenjena); color: var(--tinta); overscroll-behavior: none;
+  font: 400 17px/1.45 'Figtree', -apple-system, sans-serif;
 }
 button, input { font: inherit; color: inherit; }
 button { border: 0; background: none; cursor: pointer; touch-action: manipulation; padding: 0; }
@@ -33,8 +35,8 @@ h1, h2, h3, p { margin: 0; }
 .gorda { font-family: 'Bagel', 'Figtree', sans-serif; font-weight: 400; line-height: 1.02; }
 
 main {
-  max-width: 520px; margin: 0 auto;
-  padding: calc(env(safe-area-inset-top, 0px) + 18px) 16px calc(var(--menu-alto) + var(--abajo) + 92px);
+  flex: 1; min-height: 0; width: 100%; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain;
+  padding: calc(env(safe-area-inset-top, 0px) + 18px) max(16px, calc(50% - 244px)) 100px;
 }
 
 /* ---- Cabecera de Hoy ---- */
@@ -82,6 +84,17 @@ main {
 .ver-mas { min-height: 36px; font-size: 14px; font-weight: 700; color: var(--chicle); }
 
 .saltar { display: block; width: 100%; min-height: 44px; margin-top: 6px; font-size: 15px; font-weight: 700; color: var(--tinta-2); }
+.acciones-serie { display: flex; gap: 8px; }
+.acciones-serie .saltar { flex: 1; min-width: 0; font-size: 14px; line-height: 1.2; }
+.nota-antes { margin: -1px 0 3px 56px; font-size: 13px; line-height: 1.25; color: var(--tinta-2); overflow-wrap: anywhere; }
+.nota-label { display: block; margin-top: 12px; font-size: 13px; color: var(--tinta-2); }
+textarea.nota { margin-top: 4px; resize: none; }
+.notas { list-style: none; margin: 0; padding: 0; }
+.notas li { display: grid; grid-template-columns: 62px minmax(0, 1fr); gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--ciruela); }
+.notas .nota-fecha { font-size: 13px; color: var(--tinta-2); line-height: 1.3; }
+.notas b { display: block; font-weight: 700; font-size: 15px; }
+.notas small { display: block; font-size: 13px; color: var(--tinta-2); }
+.notas p { margin-top: 2px; overflow-wrap: anywhere; }
 .series button.saltada { background: none; box-shadow: inset 0 0 0 1px var(--ciruela-2); color: var(--tinta-2); }
 .puntos i.sal { background: none; box-shadow: inset 0 0 0 2px var(--ciruela-2); }
 
@@ -175,7 +188,7 @@ main {
 #descanso.acabado { background: var(--amarillo); }
 
 /* ---- Menú ---- */
-#menu { position: fixed; z-index: 6; left: 0; right: 0; bottom: 0; padding-bottom: var(--abajo); background: var(--berenjena);
+#menu { flex: none; position: relative; z-index: 6; padding-bottom: var(--abajo); background: var(--berenjena);
   border-top: 1px solid var(--ciruela); display: grid; grid-template-columns: 1fr 1fr; }
 #menu button { height: var(--menu-alto); font-weight: 700; color: var(--tinta-2); font-size: 16px; }
 #menu button[aria-current="page"] { color: var(--chicle); }
@@ -240,6 +253,28 @@ main {
 .tarjeta.sobria .numeros { margin-top: 14px; }
 .tarjeta.sobria button.principal { background: var(--chicle); color: var(--berenjena); }
 .tarjeta.sobria button.secundario { color: var(--tinta-2); }
+
+/* ---- Sorpresas ---- */
+.bicho svg { animation: respira 3.6s ease-in-out infinite; transform-origin: 50% 90%; }
+@keyframes respira { 50% { transform: scale(1.03, .97); } }
+.bicho .ojo { transform-box: fill-box; transform-origin: center; animation: parpadea 5.2s infinite; }
+@keyframes parpadea { 0%, 94%, 100% { transform: scaleY(1); } 97% { transform: scaleY(.1); } }
+.jardin { display: flex; flex-wrap: wrap; gap: 1px; margin: 12px 0 -8px; font-size: 21px; line-height: 1.15; }
+.jardin.final { justify-content: center; margin: 8px 0; font-size: 19px; }
+.brota { display: inline-block; animation: brota .6s cubic-bezier(.2, 1.8, .4, 1); transform-origin: 50% 100%; }
+@keyframes brota { from { transform: scale(0) rotate(-20deg); } }
+.flota { position: fixed; z-index: 13; margin-left: -14px; font-size: 28px; pointer-events: none; animation: flota 1.1s ease-out forwards; }
+@keyframes flota { to { transform: translateY(-110px) scale(1.5) rotate(14deg); opacity: 0; } }
+.cae { position: fixed; z-index: 12; top: -40px; pointer-events: none; animation: cae 3s linear both; }
+@keyframes cae { to { transform: translateY(calc(100dvh + 60px)) rotate(300deg); } }
+#bocadillo { position: fixed; z-index: 9; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 12px); width: max-content; max-width: calc(100% - 32px); padding: 9px 15px; border-radius: 16px; background: var(--tinta); color: var(--berenjena); font-size: 15px; font-weight: 700; line-height: 1.25; text-align: center; box-shadow: 0 8px 24px rgba(0, 0, 0, .35); transform: translate(-50%, -140%); opacity: 0; pointer-events: none; transition: transform .3s cubic-bezier(.2, 1.3, .4, 1), opacity .2s; }
+#bocadillo.sale { transform: translate(-50%, 0); opacity: 1; }
+.salchicha { position: fixed; z-index: 12; left: 0; bottom: calc(var(--menu-alto) + var(--abajo) + 2px); width: 124px; pointer-events: none; animation: pasea 4.2s linear forwards; }
+.salchicha svg { display: block; width: 100%; height: auto; overflow: visible; }
+@keyframes pasea { from { transform: translateX(-140px); } to { transform: translateX(calc(100vw + 20px)); } }
+.salchicha .pata { transform-box: fill-box; transform-origin: 50% 0; animation: pata .28s ease-in-out infinite alternate; }
+.salchicha .pata.b { animation-direction: alternate-reverse; }
+@keyframes pata { from { transform: rotate(-24deg); } to { transform: rotate(24deg); } }
 
 #confeti { position: fixed; z-index: 11; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 

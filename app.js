@@ -7,7 +7,13 @@ const guardar = (k, v) => { try { localStorage.setItem('mlp.' + k, JSON.stringif
 // Columnas de una fila: como las pestaña Registro.
 const F = { FECHA: 0, DIA: 1, EJ: 2, MUSC: 3, SERIE: 4, REPS: 5, KG: 6, NOTA: 7, ORIGEN: 8, ID: 9 };
 
+const NOTA_SUELTA = 'Nota';
+
 const estado = {
+  sueltas: leer('sueltas', []),
+  todasNotas: false,
+  floresVistas: Infinity,
+  toquesBicho: 0,
   codigo: leer('codigo', null),
   rutina: leer('rutina', []),
   filas: leer('filas', []),
@@ -183,7 +189,27 @@ function fusionar(servidor) {
     else pendientes.set(op.fila.id, aFila(op.fila));
   }
   const filas = servidor.filter((f) => !borradas.has(f[F.ID]) && !pendientes.has(f[F.ID]));
-  estado.filas = filas.concat([...pendientes.values()]);
+  // Las notas sueltas de los Excel antiguos no son series: solo salen en la lista de notas.
+  estado.sueltas = filas.filter((f) => f[F.EJ] === NOTA_SUELTA);
+  estado.filas = filas.filter((f) => f[F.EJ] !== NOTA_SUELTA).concat([...pendientes.values()]);
+  guardar('sueltas', estado.sueltas);
+}
+
+// Todas las notas, de la más reciente a la más antigua.
+function todasLasNotas() {
+  return estado.filas.filter((f) => String(f[F.NOTA] || '').trim()).concat(estado.sueltas)
+    .sort((a, b) => (a[F.FECHA] < b[F.FECHA] ? 1 : a[F.FECHA] > b[F.FECHA] ? -1 : 0));
+}
+
+function pintarNotas() {
+  const notas = todasLasNotas();
+  const visibles = estado.todasNotas ? notas : notas.slice(0, 5);
+  $('#notas').innerHTML = notas.length ? `<ul class="notas">${visibles.map((f) => {
+    const suelta = f[F.EJ] === NOTA_SUELTA;
+    const serie = suelta ? '' : `<small>Serie ${f[F.SERIE]}${f[F.KG] !== '' ? `, ${num(+f[F.KG])} kg` : ''}${f[F.REPS] !== '' ? ` × ${f[F.REPS]}` : ''}</small>`;
+    return `<li><span class="nota-fecha">${fechaCorta(f[F.FECHA])}</span><div>${suelta ? '' : `<b>${esc(f[F.EJ])}</b>`}${serie}<p>${esc(f[F.NOTA])}</p></div></li>`;
+  }).join('')}</ul>${notas.length > 5 ? `<button type="button" class="ver-mas" data-accion="ver-notas">${estado.todasNotas ? 'Ver menos' : `Ver las ${notas.length}`}</button>` : ''}`
+    : '<p class="pie">Cuando añadas una nota a una serie, la verás aquí con su fecha y su ejercicio.</p>';
 }
 
 async function descargar() {
@@ -241,6 +267,16 @@ function pintarPendiente() {
 }
 
 // ---------- Hoy ----------
+// Casi siempre un saludo general; a veces uno que sabe qué hora o qué día es.
+function saludoDeHoy() {
+  const ahora = new Date(), h = ahora.getHours(), d = ahora.getDay();
+  if (Math.random() > 0.35) return azar(FRASES.saludo);
+  if (d === 1) return azar(FRASES.lunes);
+  if (d === 5) return azar(FRASES.viernes);
+  if (d === 0 || d === 6) return azar(FRASES.finde);
+  return azar(h < 13 ? FRASES.manana : h < 21 ? FRASES.tarde : FRASES.noche);
+}
+
 function pintarHoy() {
   const m = $('#pantalla');
   if (!estado.rutina.length) {
@@ -252,7 +288,8 @@ function pintarHoy() {
   if (!dias.some((d) => d.dia === estado.dia)) estado.dia = dias[0].dia;
   const dia = dias.find((d) => d.dia === estado.dia);
   const lista = ejerciciosDia(estado.dia);
-  if (!estado.saludo) estado.saludo = azar(FRASES.saludo);
+  if (estado.floresVistas === Infinity) estado.floresVistas = estado.filas.filter((f) => f[F.FECHA] === hoyIso() && f[F.ORIGEN] === 'app').length;
+  if (!estado.saludo) estado.saludo = saludoDeHoy();
   const cabecera = `
     <div class="cabecera">
       <p class="saludo">${esc(estado.saludo)}</p>
@@ -275,6 +312,7 @@ function pintarHoy() {
 
   m.innerHTML = `${cabecera}
     ${pintarFoco(r)}
+    ${pintarJardin('jardin')}
     <div class="lista-cab"><h2 class="gorda">Lo que queda</h2><button type="button" data-accion="ordenar">Cambiar orden</button></div>
     <ul class="lista">
       ${lista.filter((x) => x !== r).map((x) => {
@@ -309,10 +347,26 @@ function pintarAnteriores(r) {
       const kg = +f[F.KG];
       celdas.push(`<span class="celda" style="--h:${Math.round(kg / techo * 100)}%"><b>${kg ? num(kg) : 'Libre'}</b><small>${f[F.REPS] === '' ? 'sin repes' : `× ${f[F.REPS]}`}</small></span>`);
     }
+    const notas = s.series.filter((f) => String(f[F.NOTA] || '').trim()).map((f) => `<p class="nota-antes">Serie ${f[F.SERIE]}: ${esc(f[F.NOTA])}</p>`).join('');
     return `<div class="fila-antes ${i ? '' : 'reciente'}" style="--cols:${columnas}">
-      <span class="fecha">${fechaCorta(s.fecha).slice(0, -3)}${dif ? `<em class="${dif > 0 ? 'sube' : 'baja'}">${dif > 0 ? '+' : '−'}${num(Math.abs(dif))}</em>` : ''}</span>${celdas.join('')}</div>`;
+      <span class="fecha">${fechaCorta(s.fecha).slice(0, -3)}${dif ? `<em class="${dif > 0 ? 'sube' : 'baja'}">${dif > 0 ? '+' : '−'}${num(Math.abs(dif))}</em>` : ''}</span>${celdas.join('')}</div>${notas}`;
   }).join('');
   return `<div class="antes" aria-label="Sesiones anteriores">${filas}</div>`;
+}
+
+// Cada serie de hoy planta una flor; la de cada id es siempre la misma para que no bailen al repintar.
+const FLORES = ['🌸', '🌼', '🌷', '🌺', '🌻', '🪻', '🌹'];
+function florDe(id) {
+  let n = 0;
+  for (const c of String(id)) n = (n * 31 + c.charCodeAt(0)) % 9973;
+  return FLORES[n % FLORES.length];
+}
+function pintarJardin(clase) {
+  const hoy = estado.filas.filter((f) => f[F.FECHA] === hoyIso() && f[F.ORIGEN] === 'app');
+  if (!hoy.length) return '';
+  const nueva = hoy.length > estado.floresVistas;
+  estado.floresVistas = hoy.length;
+  return `<div class="${clase}" role="img" aria-label="Tu jardín de hoy: ${hoy.length} ${hoy.length === 1 ? 'flor' : 'flores'}">${hoy.map((f, i) => `<span class="${nueva && i === hoy.length - 1 ? 'brota' : ''}">${florDe(f[F.ID])}</span>`).join('')}</div>`;
 }
 
 function pintarFoco(r) {
@@ -325,12 +379,13 @@ function pintarFoco(r) {
   const celdas = [];
   for (let i = 1; i <= huecos; i++) {
     const f = hechas.find((x) => x[F.SERIE] === i);
-    if (f) celdas.push(`<button type="button" class="ok" data-editar="${esc(f[F.ID])}" aria-label="Corregir serie ${i}">${f[F.REPS] === '' ? '?' : f[F.REPS]}<small>${num(f[F.KG])} kg</small></button>`);
+    if (f) celdas.push(`<button type="button" class="ok" data-editar="${esc(f[F.ID])}" aria-label="Corregir serie ${i}${f[F.NOTA] ? ', tiene nota' : ''}">${f[F.REPS] === '' ? '?' : f[F.REPS]}${f[F.NOTA] ? ' ✎' : ''}<small>${num(f[F.KG])} kg</small></button>`);
     else if (s.saltos.includes(i)) celdas.push(`<button type="button" class="saltada" data-recuperar="${i}" aria-label="Recuperar serie ${i}">Saltada<small>Recuperar</small></button>`);
     else if (i === s.activa) celdas.push('<button type="button" class="ahora" disabled>Ahora</button>');
     else celdas.push(`<button type="button" data-elegir="${i}">Serie ${i}</button>`);
   }
   const discosL = discos(b.kg);
+  const ultimaHecha = hechas[hechas.length - 1];
   return `<section class="foco">
     <div class="foco-cab">
       <h2 class="gorda">${esc(r.ejercicio)}</h2>
@@ -361,7 +416,10 @@ function pintarFoco(r) {
     </div>
     <button type="button" class="hecha" data-accion="hecha">Serie ${b.serie} hecha</button>
     <div class="series">${celdas.join('')}</div>
-    ${completo ? '' : `<button type="button" class="saltar" data-accion="saltar">Saltar serie ${s.activa}</button>`}
+    <div class="acciones-serie">
+      ${completo ? '' : `<button type="button" class="saltar" data-accion="saltar">Saltar serie ${s.activa}</button>`}
+      ${ultimaHecha ? `<button type="button" class="saltar" data-nota="${esc(ultimaHecha[F.ID])}">${ultimaHecha[F.NOTA] ? 'Ver nota' : 'Añadir nota'} de la serie ${ultimaHecha[F.SERIE]}</button>` : ''}
+    </div>
   </section>`;
 }
 
@@ -469,11 +527,20 @@ function serieHecha() {
     ? (kg === marca.kg && reps > marca.reps && marca.reps > 0) || (kg > marca.kg && marca.kg > 0)
     : marca.kg > 0 && (kg > marca.kg || (kg === marca.kg && reps > marca.reps));
   delete estado.serieElegida[r.ejercicio];
+  const terminado = seriesDe(r).completo;
+  const boton = document.querySelector('[data-accion="hecha"]').getBoundingClientRect();
   pasarAlSiguiente(r);
   empezarDescanso();
   pedirPantalla();
   pintar();
-  if (esRecord) celebrar(r.ejercicio, kg, reps, kg > marca.kg);
+  flotar(florDe(o.id), boton.left + boton.width / 2, boton.top);
+  if (esRecord) return celebrar(r.ejercicio, kg, reps, kg > marca.kg);
+  const apuntadas = estado.filas.filter((f) => f[F.ORIGEN] === 'app').length;
+  if (apuntadas % 50 === 0) { decir(`¡Serie número ${apuntadas} en la app! Tienes un jardín enorme.`); lluvia(['🌻', '🌸', '🌼'], 30); }
+  else if (terminado && Math.random() < 0.6) pasearSalchicha(azar(FRASES.salchicha));
+  else if (terminado) decir(azar(FRASES.ejercicio));
+  else if (Math.random() < 0.15) decir(azar(FRASES.sorpresa));
+  return undefined;
 }
 
 function celebrar(ej, kg, reps, porPeso) {
@@ -489,29 +556,43 @@ function celebrar(ej, kg, reps, porPeso) {
   </div>`;
   c.hidden = false;
   confeti();
+  lluvia(['🌻', '🌻', '🌸', '🌼', '✨'], 34);
+  pasearSalchicha();
 }
 
 function terminar() {
   const hoy = estado.filas.filter((f) => f[F.FECHA] === hoyIso());
   const total = hoy.reduce((s, f) => s + (+f[F.KG]) * (+f[F.REPS] || 0), 0);
   const ejercicios = new Set(hoy.map((f) => f[F.EJ])).size;
-  const elefantes = total / 5000;
+  // Un perro salchicha adulto pesa unos 9 kg.
+  const salchichas = Math.round(total / 9);
+  const semana = entrenosDeEstaSemana();
+  const objetivo = diasRutina().filter((d) => estado.rutina.some((r) => r.dia === d.dia && r.ejercicio)).length;
   const c = $('#capa');
   c.innerHTML = `<div class="tarjeta" role="dialog" aria-label="Entreno terminado">
     <div class="bicho salta">${svgBicho}</div>
     <h2 class="gorda">${esc(azar(FRASES.fin))}</h2>
     <p class="cifra">${miles(total)} kg</p>
-    <p>Eso es lo que has movido hoy: unos ${num(Math.round(elefantes * 10) / 10)} elefantes, en ${hoy.length} ${hoy.length === 1 ? 'serie' : 'series'} y ${ejercicios} ${ejercicios === 1 ? 'ejercicio' : 'ejercicios'}.</p>
+    <p>Eso es lo que has movido hoy: unos ${miles(salchichas)} perros salchicha, en ${hoy.length} ${hoy.length === 1 ? 'serie' : 'series'} y ${ejercicios} ${ejercicios === 1 ? 'ejercicio' : 'ejercicios'}.</p>
+    ${pintarJardin('jardin final')}
+    <p>${semana >= objetivo ? esc(azar(FRASES.semana)) : `Llevas ${semana} de ${objetivo} entrenos esta semana.`}</p>
     <p class="cesar">${esc(azar(FRASES.cesar))}<br>César</p>
     <button type="button" class="principal" data-accion="cerrar-fin">Hasta la próxima</button>
   </div>`;
   c.hidden = false;
   confeti();
+  lluvia(semana >= objetivo ? ['🌻', '🌻', '🌻', '🏅', '🌸'] : ['🌸', '🌼', '🌷', '🌻'], 40);
+  pasearSalchicha();
   pararDescanso();
   soltarPantalla();
 }
 
-function editarSerie(id) {
+function entrenosDeEstaSemana() {
+  const hoy = new Date(hoyIso()), lunes = new Date(hoy.getTime() - ((hoy.getUTCDay() + 6) % 7) * 864e5).toISOString().slice(0, 10);
+  return new Set(estado.filas.filter((f) => f[F.ORIGEN] === 'app' && f[F.FECHA] >= lunes).map((f) => f[F.FECHA])).size;
+}
+
+function editarSerie(id, soloNota) {
   const f = estado.filas.find((x) => x[F.ID] === id);
   if (!f) return;
   estado.editando = id;
@@ -522,12 +603,14 @@ function editarSerie(id) {
       <div class="numero"><label for="ekg">Kilos</label><input id="ekg" inputmode="decimal" value="${num(f[F.KG])}"></div>
       <div class="numero"><label for="ereps">Repes</label><input id="ereps" inputmode="numeric" value="${f[F.REPS]}"></div>
     </div>
-    <input class="nota" id="enota" placeholder="Nota (opcional)" value="${esc(f[F.NOTA] || '')}">
+    <label class="nota-label" for="enota">Nota (opcional)</label>
+    <textarea class="nota" id="enota" rows="2" maxlength="300" placeholder="Tirón en la lumbar, cambio de máquina...">${esc(f[F.NOTA] || '')}</textarea>
     <button type="button" class="principal" data-accion="guardar-edicion">Guardar cambios</button>
     <button type="button" class="secundario" data-accion="borrar-serie">Borrar serie</button>
     <button type="button" class="secundario" data-accion="cerrar">Cancelar</button>
   </div>`;
   c.hidden = false;
+  if (soloNota) $('#enota').focus();
 }
 
 function guardarEdicion() {
@@ -557,7 +640,7 @@ function cerrarCapa() { const c = $('#capa'); c.hidden = true; c.innerHTML = '';
 // ---------- Descanso ----------
 // Guarda la hora de fin, no una cuenta atrás: si iOS duerme la app, al volver sigue siendo correcta.
 function empezarDescanso() {
-  estado.descanso = { fin: Date.now() + estado.segundos * 1000, frase: azar(Math.random() < 0.3 ? FRASES.serie : FRASES.descanso), aviso: false };
+  estado.descanso = { fin: Date.now() + estado.segundos * 1000, frase: azar(Math.random() < 0.3 ? FRASES.serie : FRASES.descanso), listo: azar(FRASES.listo), aviso: false };
   pintarDescanso();
 }
 function pararDescanso() { estado.descanso = null; pintarDescanso(); }
@@ -576,7 +659,7 @@ function pintarDescanso() {
     e.hidden = false;
   }
   e.querySelector('.tiempo').textContent = texto;
-  e.querySelector('.frase').textContent = acabado ? 'A por la siguiente, Lópoda.' : d.frase;
+  e.querySelector('.frase').textContent = acabado ? d.listo : d.frase;
   e.classList.toggle('acabado', acabado);
   if (acabado && !d.aviso) { d.aviso = true; pitar(); }
 }
@@ -648,6 +731,7 @@ function haceUnAno(lista) {
 }
 
 function pintarProgreso() {
+  const florecidas = estado.filas.filter((f) => f[F.ORIGEN] === 'app').length;
   const m = $('#pantalla');
   const { orden, lista } = resumenes();
   if (!lista.length) { m.innerHTML = '<p>Todavía no hay datos: apunta tu primer entreno y aquí saldrá tu progreso.</p>'; return; }
@@ -667,7 +751,7 @@ function pintarProgreso() {
       <h1 class="gorda">Lo fuerte que te has puesto</h1>
       <button class="bicho" type="button" aria-label="Saludar a Marialópoda" data-accion="bicho">${svgBicho}</button>
     </div>
-    <p class="datos-vida"><b>${semanas} semanas</b> entrenando, <b>${miles(estado.filas.length)} series</b> apuntadas y más de <b>${miles(toneladas)} toneladas</b> movidas.</p>
+    <p class="datos-vida"><b>${semanas} semanas</b> entrenando, <b>${miles(estado.filas.length)} series</b> apuntadas y más de <b>${miles(toneladas)} toneladas</b> movidas.${florecidas ? ` Y <b>${miles(florecidas)} ${florecidas === 1 ? 'flor plantada' : 'flores plantadas'}</b> en tu jardín 🌻` : ''}</p>
     ${hace ? `<div class="hace">Hace un año, en ${esc(hace.ej.toLowerCase())}, movías ${num(hace.antes)} kg.<span class="gorda">Ahora mueves ${num(hace.ahora)}.</span></div>` : ''}
     <h2 class="gorda seccion">Por músculo</h2>
     <div class="chips" role="group" aria-label="Elegir músculo">
@@ -681,10 +765,13 @@ function pintarProgreso() {
     <div class="semanas" id="semanas"></div>
     <p class="pie">Cuanto más claro, más días entrenaste esa semana. Lo anterior a noviembre de 2026 tiene fechas aproximadas: el Excel solo decía "Semana N".</p>
     <h2 class="gorda seccion">Lo que más has subido</h2>
-    <ul class="subidas" id="subidas"></ul>`;
+    <ul class="subidas" id="subidas"></ul>
+    <h2 class="gorda seccion">Tus notas</h2>
+    <div id="notas"></div>`;
   pintarGrafica(lista.find((e) => e.ej === estado.grafica));
   pintarSemanas();
   pintarSubidas(lista, conRecord);
+  pintarNotas();
 }
 
 function pintarSubidas(lista) {
@@ -793,6 +880,57 @@ function confeti() {
   })(performance.now());
 }
 
+// ---------- Sorpresas ----------
+const SIN_MOVIMIENTO = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// Emojis cayendo por encima de todo; no interfieren con los toques.
+function lluvia(emojis, cuantos) {
+  if (SIN_MOVIMIENTO()) return;
+  for (let i = 0; i < cuantos; i++) {
+    const e = document.createElement('span');
+    e.className = 'cae';
+    e.textContent = azar(emojis);
+    e.style.left = `${Math.random() * 96}%`;
+    e.style.fontSize = `${18 + Math.random() * 18}px`;
+    e.style.animationDuration = `${2.2 + Math.random() * 1.8}s`;
+    e.style.animationDelay = `${Math.random() * 0.9}s`;
+    e.addEventListener('animationend', () => e.remove());
+    document.body.appendChild(e);
+  }
+}
+
+function flotar(emoji, x, y) {
+  if (SIN_MOVIMIENTO()) return;
+  const e = document.createElement('span');
+  e.className = 'flota';
+  e.textContent = emoji;
+  e.style.left = `${x}px`;
+  e.style.top = `${y}px`;
+  e.addEventListener('animationend', () => e.remove());
+  document.body.appendChild(e);
+}
+
+let temporizadorDecir = null;
+function decir(texto) {
+  let b = document.getElementById('bocadillo');
+  if (!b) { b = document.createElement('div'); b.id = 'bocadillo'; b.setAttribute('role', 'status'); document.body.appendChild(b); }
+  b.textContent = texto;
+  b.classList.remove('sale'); void b.offsetWidth; b.classList.add('sale');
+  clearTimeout(temporizadorDecir);
+  temporizadorDecir = setTimeout(() => b.classList.remove('sale'), 3600);
+}
+
+const SVG_SALCHICHA = `<svg viewBox="0 0 124 50" aria-hidden="true"><path d="M24 23 L10 12" stroke="#9A5A2B" stroke-width="5" stroke-linecap="round"/><g class="pata a"><rect x="30" y="32" width="6" height="14" rx="3" fill="#7C4520"/></g><g class="pata b"><rect x="42" y="32" width="6" height="14" rx="3" fill="#6E3B1A"/></g><g class="pata b"><rect x="74" y="32" width="6" height="14" rx="3" fill="#7C4520"/></g><g class="pata a"><rect x="85" y="32" width="6" height="14" rx="3" fill="#6E3B1A"/></g><rect x="22" y="18" width="72" height="18" rx="9" fill="#9A5A2B"/><rect x="86" y="18" width="5" height="17" rx="2" fill="#FF7DB0"/><circle cx="100" cy="17" r="12" fill="#9A5A2B"/><ellipse cx="113" cy="21" rx="9" ry="6" fill="#9A5A2B"/><circle cx="121" cy="19" r="2.6" fill="#2B1033"/><ellipse cx="94" cy="20" rx="5" ry="11" fill="#6E3B1A"/><circle cx="104" cy="14" r="2" fill="#2B1033"/><text x="97" y="9" font-size="13">🌻</text></svg>`;
+function pasearSalchicha(texto) {
+  if (texto) decir(texto);
+  if (SIN_MOVIMIENTO() || document.querySelector('.salchicha')) return;
+  const d = document.createElement('div');
+  d.className = 'salchicha';
+  d.innerHTML = SVG_SALCHICHA;
+  d.addEventListener('animationend', (ev) => { if (ev.target === d) d.remove(); });
+  document.body.appendChild(d);
+}
+
 // ---------- Bienvenida ----------
 function pintarBienvenida() {
   const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
@@ -843,7 +981,13 @@ function guardarBorrador() {
 
 function saludarBicho(el) {
   el.classList.remove('salta'); void el.offsetWidth; el.classList.add('salta');
-  const texto = Math.random() < 0.25 ? azar(FRASES.cesar) : azar(FRASES.bicho);
+  const caja = el.getBoundingClientRect();
+  flotar(azar(['💗', '🌸', '🌻', '🌼']), caja.left + caja.width / 2, caja.top + 8);
+  estado.toquesBicho++;
+  // Quien insiste encuentra el jardín secreto.
+  const secreto = estado.toquesBicho % 7 === 0;
+  if (secreto) { lluvia(['🌻', '🌸', '🌼', '🌷', '💗'], 45); pasearSalchicha(); }
+  const texto = secreto ? azar(FRASES.secreto) : Math.random() < 0.25 ? azar(FRASES.cesar) : azar(FRASES.bicho);
   const s = document.querySelector('.saludo') || document.querySelector('.datos-vida');
   if (s) s.textContent = texto;
   if (document.querySelector('.saludo')) estado.saludo = texto;
@@ -852,12 +996,13 @@ function saludarBicho(el) {
 document.addEventListener('click', (ev) => {
   const t = ev.target.closest('button');
   if (!t) return;
-  if (t.dataset.ver) { guardarBorrador(); estado.vista = t.dataset.ver; window.scrollTo(0, 0); return pintar(); }
+  if (t.dataset.ver) { guardarBorrador(); estado.vista = t.dataset.ver; $('#pantalla').scrollTo(0, 0); return pintar(); }
   if (t.dataset.dia) { guardarBorrador(); estado.dia = +t.dataset.dia; estado.ejercicio = null; return pintar(); }
-  if (t.dataset.ej) { guardarBorrador(); estado.ejercicio = t.dataset.ej; window.scrollTo({ top: 0, behavior: 'smooth' }); return pintar(); }
+  if (t.dataset.ej) { guardarBorrador(); estado.ejercicio = t.dataset.ej; $('#pantalla').scrollTo({ top: 0, behavior: 'smooth' }); return pintar(); }
   if (t.dataset.musculo) { estado.musculo = t.dataset.musculo; estado.grafica = null; return pintar(); }
   if (t.dataset.grafica) { estado.grafica = t.dataset.grafica; return pintar(); }
   if (t.dataset.editar) return editarSerie(t.dataset.editar);
+  if (t.dataset.nota) return editarSerie(t.dataset.nota, true);
   if (t.dataset.elegir) { guardarBorrador(); estado.serieElegida[estado.ejercicio] = +t.dataset.elegir; return pintar(); }
   if (t.dataset.recuperar) return recuperarSerie(+t.dataset.recuperar);
   if (t.dataset.mover) return moverEjercicio(+t.dataset.mover, +t.dataset.v);
@@ -879,6 +1024,7 @@ document.addEventListener('click', (ev) => {
     case 'cambiar': guardarBorrador(); return pintarCambio();
     case 'cambiar-otro': return cambiarEjercicio($('#otro').value);
     case 'ver-mas': guardarBorrador(); estado.verMas = !estado.verMas; return pintar();
+    case 'ver-notas': estado.todasNotas = !estado.todasNotas; return pintarNotas();
     case 'terminar': return terminar();
     case 'cerrar': cerrarCapa(); return undefined;
     case 'cerrar-fin': cerrarCapa(); estado.ejercicio = null; estado.saludo = null; return pintar();
@@ -894,6 +1040,9 @@ document.addEventListener('click', (ev) => {
 
 // Un toque en la cifra selecciona todo para sobrescribirla directamente.
 document.addEventListener('focusin', (ev) => { if (ev.target.matches('.numero input')) ev.target.select(); });
+
+// Al cerrarse el teclado, iOS puede dejar la página desplazada: se devuelve a su sitio.
+document.addEventListener('focusout', () => setTimeout(() => window.scrollTo(0, 0), 60));
 
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState !== 'visible') return;
