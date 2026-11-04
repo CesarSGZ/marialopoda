@@ -556,7 +556,7 @@ function celebrar(ej, kg, reps, porPeso) {
   </div>`;
   c.hidden = false;
   confeti();
-  lluvia(['🌻', '🌻', '🌸', '🌼', '✨'], 34);
+  lluvia(['🌻', '🌻', '🌸', '🌼', '✨', '🐘'], 34);
   pasearSalchicha();
 }
 
@@ -564,8 +564,12 @@ function terminar() {
   const hoy = estado.filas.filter((f) => f[F.FECHA] === hoyIso());
   const total = hoy.reduce((s, f) => s + (+f[F.KG]) * (+f[F.REPS] || 0), 0);
   const ejercicios = new Set(hoy.map((f) => f[F.EJ])).size;
-  // Un perro salchicha adulto pesa unos 9 kg.
+  // Un perro salchicha adulto pesa unos 9 kg, y un elefante unos 5.000.
   const salchichas = Math.round(total / 9);
+  const elefantes = Math.round(total / 500) / 10;
+  const enSalchichas = `unos ${miles(salchichas)} perros salchicha`;
+  // Con muy poco peso diría "0 elefantes": ahí solo cuentan los salchichas.
+  const equivale = elefantes < 0.1 ? enSalchichas : azar([enSalchichas, `unos ${num(elefantes)} elefantes`, `unos ${num(elefantes)} elefantes o ${miles(salchichas)} perros salchicha`]);
   const semana = entrenosDeEstaSemana();
   const objetivo = diasRutina().filter((d) => estado.rutina.some((r) => r.dia === d.dia && r.ejercicio)).length;
   const c = $('#capa');
@@ -573,7 +577,7 @@ function terminar() {
     <div class="bicho salta">${svgBicho}</div>
     <h2 class="gorda">${esc(azar(FRASES.fin))}</h2>
     <p class="cifra">${miles(total)} kg</p>
-    <p>Eso es lo que has movido hoy: unos ${miles(salchichas)} perros salchicha, en ${hoy.length} ${hoy.length === 1 ? 'serie' : 'series'} y ${ejercicios} ${ejercicios === 1 ? 'ejercicio' : 'ejercicios'}.</p>
+    <p>Eso es lo que has movido hoy: ${equivale}, en ${hoy.length} ${hoy.length === 1 ? 'serie' : 'series'} y ${ejercicios} ${ejercicios === 1 ? 'ejercicio' : 'ejercicios'}.</p>
     ${pintarJardin('jardin final')}
     <p>${semana >= objetivo ? esc(azar(FRASES.semana)) : `Llevas ${semana} de ${objetivo} entrenos esta semana.`}</p>
     <p class="cesar">${esc(azar(FRASES.cesar))}<br>César</p>
@@ -926,7 +930,8 @@ function pasearSalchicha(texto) {
   if (SIN_MOVIMIENTO() || document.querySelector('.salchicha')) return;
   const d = document.createElement('div');
   d.className = 'salchicha';
-  d.innerHTML = SVG_SALCHICHA;
+  // A veces el que pasa es un elefante.
+  d.innerHTML = Math.random() < 0.35 ? '<span class="elefante">🐘</span>' : SVG_SALCHICHA;
   d.addEventListener('animationend', (ev) => { if (ev.target === d) d.remove(); });
   document.body.appendChild(d);
 }

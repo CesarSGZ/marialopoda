@@ -12,7 +12,12 @@ const FRASES = {
     'Un perro salchicha acaba de verte entrar y ha movido el rabo.',
     'Noticia de última hora: la más linda ha venido a entrenar.',
     'Entra una flor y sale una bestia. Vamos.',
-    'Ya estás aquí, que es lo más difícil.'
+    'Ya estás aquí, que es lo más difícil.',
+    'Este es el camino, Lópoda. Y pasa por el hip thrust.',
+    'Que la Fuerza te acompañe. La de los glúteos, sobre todo.',
+    'Hace mucho tiempo, en un gimnasio muy, muy lejano, llegó Marialópoda.',
+    'Un elefante nunca olvida. Y tú nunca te saltas un entreno. Bueno, casi.',
+    'Luces apagadas, móvil en silencio: empieza la película de hoy.'
   ],
   manana: ['Buenos días, flor. A regar esos músculos.', 'Mañana de girasoles: tú también vas a mirar para arriba.', 'Qué madrugadora mi Lópoda.'],
   tarde: ['Buenas tardes, Lópoda. La tarde es tuya.', 'Hay gente echando la siesta. Tú no. Bueno, luego sí.'],
@@ -37,7 +42,12 @@ const FRASES = {
     'Mientras descansas, un perro salchicha te admira.',
     'Estira las patas. Todas.',
     'Qué bien te sale ponerte fuerte.',
-    'Ni una flor ha sudado tanto como tú hoy.'
+    'Ni una flor ha sudado tanto como tú hoy.',
+    'Ni Grogu descansa con tanta elegancia.',
+    'Descansa como Grogu en su cunita, pero poco rato.',
+    'Esto son los tráileres. Ahora viene lo bueno.',
+    'Bebe agua, que los elefantes también lo hacen. A trompadas.',
+    'Palomitas mentales y a por otra.'
   ],
   serie: [
     '¡Hecha!',
@@ -47,27 +57,35 @@ const FRASES = {
     'Qué bárbara.',
     'Así, Lópoda.',
     'Una flor más en tu jardín.',
-    'Preciosa serie, preciosa tú.'
+    'Preciosa serie, preciosa tú.',
+    'Este es el camino.',
+    'Esa serie merece un Oscar.',
+    'Trompetazo de elefante para ti.'
   ],
   listo: [
     'A por la siguiente, Lópoda.',
     'Se acabó la siesta de oruga.',
     'Las patas ya están listas.',
     'Vamos, que la barra te echa de menos.',
-    'Hora de plantar otra flor.'
+    'Hora de plantar otra flor.',
+    'Se acabaron los tráileres. Empieza la película.',
+    'Mando ya ha cargado la barra. Vamos.'
   ],
   ejercicio: [
     'Ejercicio terminado. Tu jardín está precioso.',
     'Uno menos. Cómo floreces, Lópoda.',
     'Ese ejercicio ya no se atreve a mirarte.',
-    'Listo. Un girasol más para ti.'
+    'Listo. Un girasol más para ti.',
+    'Ejercicio superado. Créditos finales y a por el siguiente.',
+    'Misión cumplida, cazarrecompensas.'
   ],
   salchicha: [
     '¡Ha venido un perro salchicha a felicitarte!',
     'Un salchicha pasaba por aquí y se ha emocionado.',
     'El comité de perros salchicha aprueba este ejercicio.',
     'Guau. Eso significa "qué fuerte estás".',
-    'Patas cortas, admiración infinita.'
+    'Patas cortas, admiración infinita.',
+    'Un salchicha y un elefante entran en un gimnasio: ninguno puede contigo.'
   ],
   sorpresa: [
     'Dato curioso: eres la más linda.',
@@ -77,7 +95,12 @@ const FRASES = {
     'Mensaje del jardín: seguid así, jefa.',
     'Si los perros salchicha hicieran hip thrust, querrían ser tú.',
     'Pequeño recordatorio: lo estás haciendo genial.',
-    'La oruga llora de orgullo. Por muchos ojos no, solo dos.'
+    'La oruga llora de orgullo. Por muchos ojos no, solo dos.',
+    'Grogu usaría la Fuerza para levantar eso. Tú lo haces sin trampas.',
+    'Un elefante te mira y asiente con respeto.',
+    'Esto da para secuela.',
+    'Lo tuyo es la saga completa, no un cortometraje.',
+    'Darth Vader ha pedido tu rutina.'
   ],
   record: [
     'Nunca habías levantado tanto. Hasta hoy.',
@@ -87,7 +110,11 @@ const FRASES = {
     'Récord nuevo. César se va a poner insoportable contándolo.',
     'Han brotado girasoles por todo el gimnasio.',
     'Los perros salchicha del mundo se ponen en pie. Tardan, pero se ponen.',
-    'Tu yo de hace un año no se lo cree.'
+    'Tu yo de hace un año no se lo cree.',
+    'Siento una gran perturbación en la barra.',
+    'Ni el beskar aguanta tanta fuerza.',
+    'Oscar a la mejor serie del año.',
+    'Hasta los elefantes han salido a aplaudir. Con las orejas.'
   ],
   fin: [
     'Entreno hecho. La más fuerte, otra vez.',
@@ -96,12 +123,16 @@ const FRASES = {
     'Otro día más cerca de levantar a César con una mano.',
     'Tu jardín de hoy ha quedado precioso.',
     'Ahora a descansar, flor.',
-    'Hoy has entrenado como una campeona y estás igual de linda.'
+    'Hoy has entrenado como una campeona y estás igual de linda.',
+    'Fin de la película. Hay escena poscréditos: comer.',
+    'Entreno hecho. Este es el camino.',
+    'Cae el telón. La protagonista eras tú.'
   ],
   semana: [
     '¡Semana completa! Eres un campo entero de girasoles.',
     'Todos los entrenos de la semana hechos. Qué barbaridad de oruga.',
-    'Semana perfecta. El comité de salchichas te da su medalla.'
+    'Semana perfecta. El comité de salchichas te da su medalla.',
+    'Semana completa: trilogía terminada y con spin-off.'
   ],
   cesar: [
     'Te quiero mucho, Lópoda. No te haces una idea.',
@@ -109,7 +140,9 @@ const FRASES = {
     'Eres más fuerte que nunca, y yo, a tu lado, el más orgulloso.',
     'Eres mi girasol favorito.',
     'Mi Lópoda favorita del universo.',
-    'Qué suerte tengo de que seas tú.'
+    'Qué suerte tengo de que seas tú.',
+    'Eres mi plan favorito, más que ir al cine. Y mira que me gusta.',
+    'Te debo unas palomitas por este entreno.'
   ],
   reposo: [
     'Hoy toca descansar. El músculo también crece en el sofá.',
@@ -117,7 +150,9 @@ const FRASES = {
     'Hoy no se levanta nada más pesado que una manta.',
     'Las lópodas descansan una vez por rutina y se lo han ganado.',
     'Hoy es día de sofá, flores y perros salchicha.',
-    'Hasta los girasoles descansan de noche.'
+    'Hasta los girasoles descansan de noche.',
+    'Día de descanso: plan perfecto para ir al cine.',
+    'Hoy toca sofá, mantita y The Mandalorian.'
   ],
   bicho: [
     '¿Me has tocado? Con esos brazos, ten cuidado.',
@@ -131,10 +166,15 @@ const FRASES = {
     'Cosquillas no, que se me cae la barra.',
     'Soy pequeña, pero te animo muy fuerte.',
     'Algún día seré mariposa. Hoy soy tu fan.',
-    'Sigue tocando, que a lo mejor pasa algo...'
+    'Sigue tocando, que a lo mejor pasa algo...',
+    'Yo también quiero un casco de beskar. A medida, claro.',
+    'Si vamos al cine, me pido el cubo grande. Tengo muchas patas que alimentar.',
+    'Este es el camino, y yo lo recorro con muchas patas.',
+    'De mayor quiero ser mariposa. O elefante, aún no lo tengo claro.'
   ],
   secreto: [
     '¡Has encontrado el jardín secreto de Marialópoda!',
-    'Ahora ya lo sabes: tocar a la oruga da girasoles.'
+    'Ahora ya lo sabes: tocar a la oruga da girasoles.',
+    'Jardín secreto encontrado. Que la Fuerza lo riegue.'
   ]
 };

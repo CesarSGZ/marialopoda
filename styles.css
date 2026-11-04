@@ -270,6 +270,7 @@ textarea.nota { margin-top: 4px; resize: none; }
 #bocadillo { position: fixed; z-index: 9; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 12px); width: max-content; max-width: calc(100% - 32px); padding: 9px 15px; border-radius: 16px; background: var(--tinta); color: var(--berenjena); font-size: 15px; font-weight: 700; line-height: 1.25; text-align: center; box-shadow: 0 8px 24px rgba(0, 0, 0, .35); transform: translate(-50%, -140%); opacity: 0; pointer-events: none; transition: transform .3s cubic-bezier(.2, 1.3, .4, 1), opacity .2s; }
 #bocadillo.sale { transform: translate(-50%, 0); opacity: 1; }
 .salchicha { position: fixed; z-index: 12; left: 0; bottom: calc(var(--menu-alto) + var(--abajo) + 2px); width: 124px; pointer-events: none; animation: pasea 4.2s linear forwards; }
+.elefante { display: block; width: 100%; font-size: 58px; line-height: 1; text-align: center; transform: scaleX(-1); }
 .salchicha svg { display: block; width: 100%; height: auto; overflow: visible; }
 @keyframes pasea { from { transform: translateX(-140px); } to { transform: translateX(calc(100vw + 20px)); } }
 .salchicha .pata { transform-box: fill-box; transform-origin: 50% 0; animation: pata .28s ease-in-out infinite alternate; }
