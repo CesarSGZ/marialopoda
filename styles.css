@@ -189,7 +189,7 @@ textarea.nota { margin-top: 4px; resize: none; }
 
 /* ---- Menú ---- */
 #menu { flex: none; position: relative; z-index: 6; padding-bottom: var(--abajo); background: var(--berenjena);
-  border-top: 1px solid var(--ciruela); display: grid; grid-template-columns: 1fr 1fr; }
+  border-top: 1px solid var(--ciruela); display: grid; grid-template-columns: repeat(3, 1fr); }
 #menu button { height: var(--menu-alto); font-weight: 700; color: var(--tinta-2); font-size: 16px; }
 #menu button[aria-current="page"] { color: var(--chicle); }
 
@@ -253,6 +253,52 @@ textarea.nota { margin-top: 4px; resize: none; }
 .tarjeta.sobria .numeros { margin-top: 14px; }
 .tarjeta.sobria button.principal { background: var(--chicle); color: var(--berenjena); }
 .tarjeta.sobria button.secundario { color: var(--tinta-2); }
+
+/* ---- Tu mundo ---- */
+.titulo-mundo { font-size: 34px; margin-bottom: 14px; }
+.tarjeta-mundo { background: var(--ciruela); border-radius: 24px; padding: 16px 14px; margin-bottom: 14px; }
+.tarjeta-mundo h2 { font-size: 25px; }
+.mundo-dato { font-size: 14.5px; line-height: 1.35; color: var(--tinta-2); margin-top: 6px; }
+.mundo-frase { font-weight: 600; margin-top: 8px; }
+.oruga-cab { display: flex; align-items: center; gap: 12px; }
+.bicho.grande { width: 96px; height: 96px; }
+.bicho svg { overflow: visible; }
+.barra-nivel { height: 10px; margin-top: 12px; border-radius: 5px; background: var(--berenjena); overflow: hidden; }
+.barra-nivel i { display: block; height: 100%; border-radius: 5px; background: var(--chicle); transition: width .5s; }
+.galaxia { background: radial-gradient(1px 1px at 12% 22%, #fff, transparent), radial-gradient(1px 1px at 76% 14%, #fff, transparent), radial-gradient(1.5px 1.5px at 42% 58%, #fff, transparent), radial-gradient(1px 1px at 88% 72%, #fff, transparent), radial-gradient(1.5px 1.5px at 22% 84%, #fff, transparent), #1B0B26; }
+.galaxia svg { display: block; width: 100%; height: auto; margin-top: 8px; overflow: visible; }
+.galaxia svg text { fill: var(--tinta); font: 600 13px 'Figtree', sans-serif; }
+.nave { animation: nave 3s ease-in-out infinite; }
+@keyframes nave { 50% { translate: 0 -4px; } }
+.planetas { list-style: none; margin: 8px 0 0; padding: 0; }
+.planetas li { display: flex; gap: 10px; padding: 8px 0; border-top: 1px solid var(--ciruela-2); font-size: 14.5px; }
+.planetas i { flex: none; width: 22px; height: 22px; margin-top: 2px; border-radius: 50%; }
+.planetas p { color: var(--tinta-2); }
+.anio { margin-top: 10px; }
+.anio-cab { display: flex; width: 100%; align-items: baseline; justify-content: space-between; gap: 8px; min-height: 40px; }
+.anio-cab b { font: 400 21px 'Bagel', sans-serif; }
+.anio-cab span { font-size: 13.5px; color: var(--tinta-2); }
+.bosque { display: block; width: 100%; height: auto; border-radius: 14px; }
+.bosque [data-semana] { cursor: pointer; }
+.bosque .crece { transform-box: fill-box; transform-origin: 50% 100%; animation: crece 3s ease-in-out infinite; }
+@keyframes crece { 50% { transform: rotate(2deg) scale(1.05); } }
+.duelo { margin: 2px 0 8px; padding: 8px 10px; border-radius: 12px; background: var(--berenjena); font-size: 14px; line-height: 1.3; color: var(--tinta-2); }
+.duelo.gana { color: var(--tinta); font-weight: 700; }
+.cuerpo svg { display: block; width: 100%; max-width: 360px; height: auto; margin: 0 auto; }
+.cuerpo svg text { fill: var(--tinta-2); font: 600 13px 'Figtree', sans-serif; }
+.cuerpo .base { fill: #3A1A45; }
+.zona { cursor: pointer; }
+.n-sin { fill: #4A3353; }
+.n0, .n1 { fill: #7A3C68; } .n2 { fill: #A8467C; } .n3 { fill: #D6588F; } .n4 { fill: #FF7DB0; } .n5 { fill: #FFC2DA; }
+.leyenda { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 10px; margin-top: 8px; font-size: 12.5px; color: var(--tinta-2); }
+.leyenda span { display: inline-flex; align-items: center; gap: 4px; }
+.leyenda i { width: 12px; height: 12px; border-radius: 4px; }
+.leyenda .n1 { background: #7A3C68; } .leyenda .n2 { background: #A8467C; } .leyenda .n3 { background: #D6588F; } .leyenda .n4 { background: #FF7DB0; } .leyenda .n5 { background: #FFC2DA; }
+.fuerzas { list-style: none; margin: 10px 0 6px; padding: 0; }
+.fuerzas li { display: flex; justify-content: space-between; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--ciruela); }
+.fuerzas b { display: block; font-size: 15px; }
+.fuerzas small { display: block; font-size: 13px; color: var(--tinta-2); }
+.fuerza-dato { flex: none; text-align: right; }
 
 /* ---- Sorpresas ---- */
 .bicho svg { animation: respira 3.6s ease-in-out infinite; transform-origin: 50% 90%; }

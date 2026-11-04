@@ -134,6 +134,52 @@ const FRASES = {
     'Semana perfecta. El comité de salchichas te da su medalla.',
     'Semana completa: trilogía terminada y con spin-off.'
   ],
+  planetas: [
+    'Tatooine|#D9A066|Arena por todas partes, y tú entrenando igual.',
+    'Naboo|#6FBF73|Aquí hay flores casi tan bonitas como tu jardín.',
+    'Coruscant|#8A8FBF|Una ciudad entera y ni un solo gimnasio a tu altura.',
+    'Hoth|#CFE8F5|Hace un frío horrible. Tú ya vienes calentita de hacer series.',
+    'Endor|#3D8B5A|Un bosque enorme. El tuyo va camino de parecerse.',
+    'Dagobah|#5F7D4C|Pantano, barro y un maestro diminuto que te aprueba.',
+    'Bespin|#F2B880|Ciudad en las nubes. Tus récords también andan por ahí arriba.',
+    'Kamino|#7FA8C9|Aquí clonarían tus glúteos, pero no les sale igual.',
+    'Mustafar|#E5533D|Lava por todas partes. Es lo que sienten tus cuádriceps.',
+    'Nevarro|#B5763C|Pueblo de cazarrecompensas. Tu cabeza no tiene precio.',
+    'Mandalore|#6C7A89|Te ofrecen beskar. Lo levantas para calentar.',
+    'Corellia|#C98B5B|Aquí se construyen las mejores naves. La tuya la impulsas tú.',
+    'Jakku|#E0C080|Chatarra y desierto. Tú, reluciente.',
+    'Scarif|#4FC3C7|Playa tropical. Se te ve muy bien, por cierto.',
+    'Ahch-To|#5E8FA8|Una isla tranquila para respirar entre serie y serie.',
+    'Crait|#E8EAED|Sal blanca por fuera y rojo por dentro, como tú tras las búlgaras.',
+    'Kashyyyk|#2F7D4F|Árboles gigantes y wookiees que te abrazan.',
+    'Yavin 4|#7DAA6A|Medalla de la rebelión para ti. Te la has ganado.'
+  ],
+  nivel: [
+    'La oruga ha subido de nivel, y te lo debe a ti.',
+    'Más patas, más fuerza, más linda.',
+    'Cada entreno cuenta, y ya llevas una barbaridad.',
+    'Este es el camino, y lo recorres cada vez más arriba.'
+  ],
+  duelo: [
+    '🥊 ¡Has adelantado a tu yo del pasado!',
+    '🥊 Tu yo de hace meses te mira con la boca abierta.',
+    '🥊 Duelo ganado, y sin despeinarte.',
+    '🥊 Te estás ganando a ti misma. Qué nivel.'
+  ],
+  novedades: [
+    'Ya tienes un bosque, una oruga que evoluciona y un viaje por la galaxia. Míralo en "Tu mundo".'
+  ],
+  cumple: [
+    'Hoy las barras te cantan, los girasoles se giran hacia ti y los elefantes tocan la trompeta.',
+    'Hoy toda la galaxia celebra a la oruga más linda.',
+    'Hoy no hay récord que importe más que tú.',
+    'Los perros salchicha del mundo te han traído una tarta. Se han comido media.'
+  ],
+  cumpleCesar: [
+    'Feliz cumpleaños, mi amor. Te quiero muchísimo, más de lo que cualquier barra podría levantar.',
+    'Eres lo mejor que me ha pasado, Lópoda. Feliz cumpleaños. Te quiero muchísimo.',
+    'Un año más a tu lado, y cada vez te quiero más. Feliz cumpleaños, Lópoda.'
+  ],
   cesar: [
     'Te quiero mucho, Lópoda. No te haces una idea.',
     'ES INCREÍBLE LO LINDA QUE ERES.',

@@ -12,6 +12,11 @@ const NOTA_SUELTA = 'Nota';
 const estado = {
   sueltas: leer('sueltas', []),
   todasNotas: false,
+  verPlanetas: false,
+  aniosAbiertos: new Set(),
+  cartas: [],
+  dueloCelebrado: {},
+  peso: leer('peso', null),
   floresVistas: Infinity,
   toquesBicho: 0,
   codigo: leer('codigo', null),
@@ -35,7 +40,7 @@ const estado = {
 };
 
 // Este bicho sale siempre igual: lo dibuja dev/mascota.py.
-let svgBicho = '';
+let svgBicho = '', svgBase = '';
 const azar = (l) => l[Math.floor(Math.random() * l.length)];
 const hoyIso = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };
 const num = (v) => String(Math.round(v * 100) / 100).replace('.', ',');
@@ -268,7 +273,12 @@ function pintarPendiente() {
 
 // ---------- Hoy ----------
 // Casi siempre un saludo general; a veces uno que sabe qué hora o qué día es.
+function objetivoSemanal() {
+  return diasRutina().filter((d) => estado.rutina.some((r) => r.dia === d.dia && r.ejercicio)).length || 4;
+}
+
 function saludoDeHoy() {
+  if (ES_CUMPLE(hoyIso())) return azar(FRASES.cumple);
   const ahora = new Date(), h = ahora.getHours(), d = ahora.getDay();
   if (Math.random() > 0.35) return azar(FRASES.saludo);
   if (d === 1) return azar(FRASES.lunes);
@@ -397,6 +407,7 @@ function pintarFoco(r) {
       <span>${marca.kg ? `Tu récord: ${num(marca.kg)} kg` : ''}</span>
       ${sesionesPrevias(r.ejercicio, 3).length > 2 ? `<button type="button" class="ver-mas" data-accion="ver-mas">${estado.verMas ? 'Ver menos' : 'Ver más'}</button>` : ''}
     </div>
+    ${pintarDuelo(r, b.kg, b.reps)}
     ${sub ? `<button type="button" class="subir" data-subir="${sub}">Las hiciste todas a ${r.reps} o más. ¿Pruebas con ${num(sub)} kg?</button>` : ''}
     ${completo ? `<p class="ultima" style="color:var(--tinta);margin-top:12px">Ejercicio terminado. Si te queda una más, adelante.</p>` : ''}
     <div class="barra" aria-hidden="true">
@@ -528,6 +539,9 @@ function serieHecha() {
     : marca.kg > 0 && (kg > marca.kg || (kg === marca.kg && reps > marca.reps));
   delete estado.serieElegida[r.ejercicio];
   const terminado = seriesDe(r).completo;
+  const rival = rivalDe(r.ejercicio, hoyIso());
+  const adelanta = rival && e1rmDe(kg, reps) > rival.valor && !estado.dueloCelebrado[r.ejercicio];
+  if (adelanta) estado.dueloCelebrado[r.ejercicio] = true;
   const boton = document.querySelector('[data-accion="hecha"]').getBoundingClientRect();
   pasarAlSiguiente(r);
   empezarDescanso();
@@ -536,7 +550,8 @@ function serieHecha() {
   flotar(florDe(o.id), boton.left + boton.width / 2, boton.top);
   if (esRecord) return celebrar(r.ejercicio, kg, reps, kg > marca.kg);
   const apuntadas = estado.filas.filter((f) => f[F.ORIGEN] === 'app').length;
-  if (apuntadas % 50 === 0) { decir(`¡Serie número ${apuntadas} en la app! Tienes un jardín enorme.`); lluvia(['🌻', '🌸', '🌼'], 30); }
+  if (adelanta) decir(azar(FRASES.duelo));
+  else if (apuntadas % 50 === 0) { decir(`¡Serie número ${apuntadas} en la app! Tienes un jardín enorme.`); lluvia(['🌻', '🌸', '🌼'], 30); }
   else if (terminado && Math.random() < 0.6) pasearSalchicha(azar(FRASES.salchicha));
   else if (terminado) decir(azar(FRASES.ejercicio));
   else if (Math.random() < 0.15) decir(azar(FRASES.sorpresa));
@@ -571,7 +586,8 @@ function terminar() {
   // Con muy poco peso diría "0 elefantes": ahí solo cuentan los salchichas.
   const equivale = elefantes < 0.1 ? enSalchichas : azar([enSalchichas, `unos ${num(elefantes)} elefantes`, `unos ${num(elefantes)} elefantes o ${miles(salchichas)} perros salchicha`]);
   const semana = entrenosDeEstaSemana();
-  const objetivo = diasRutina().filter((d) => estado.rutina.some((r) => r.dia === d.dia && r.ejercicio)).length;
+  const objetivo = objetivoSemanal();
+  const ganados = duelosGanadosHoy(hoyIso());
   const c = $('#capa');
   c.innerHTML = `<div class="tarjeta" role="dialog" aria-label="Entreno terminado">
     <div class="bicho salta">${svgBicho}</div>
@@ -579,6 +595,7 @@ function terminar() {
     <p class="cifra">${miles(total)} kg</p>
     <p>Eso es lo que has movido hoy: ${equivale}, en ${hoy.length} ${hoy.length === 1 ? 'serie' : 'series'} y ${ejercicios} ${ejercicios === 1 ? 'ejercicio' : 'ejercicios'}.</p>
     ${pintarJardin('jardin final')}
+    ${ganados ? `<p>🥊 Has ido por delante de tu yo del pasado en ${ganados} ${ganados === 1 ? 'ejercicio' : 'ejercicios'}.</p>` : ''}
     <p>${semana >= objetivo ? esc(azar(FRASES.semana)) : `Llevas ${semana} de ${objetivo} entrenos esta semana.`}</p>
     <p class="cesar">${esc(azar(FRASES.cesar))}<br>César</p>
     <button type="button" class="principal" data-accion="cerrar-fin">Hasta la próxima</button>
@@ -589,6 +606,7 @@ function terminar() {
   pasearSalchicha();
   pararDescanso();
   soltarPantalla();
+  comprobarLogros();
 }
 
 function entrenosDeEstaSemana() {
@@ -639,7 +657,30 @@ function borrarSerie() {
   pintar();
 }
 
-function cerrarCapa() { const c = $('#capa'); c.hidden = true; c.innerHTML = ''; estado.editando = null; }
+function cerrarCapa() {
+  const c = $('#capa');
+  c.hidden = true; c.innerHTML = ''; estado.editando = null;
+  const siguiente = estado.cartas.shift();
+  if (siguiente) { c.innerHTML = siguiente; c.hidden = false; confeti(); }
+}
+
+// Si ya hay una tarjeta abierta, la nueva espera su turno.
+function mostrarCarta(html) {
+  const c = $('#capa');
+  if (!c.hidden) { estado.cartas.push(html); return; }
+  c.innerHTML = html; c.hidden = false; confeti();
+}
+
+function pedirPeso() {
+  const c = $('#capa');
+  c.innerHTML = `<div class="tarjeta sobria" role="dialog" aria-label="Tu peso"><h2 class="gorda">Tu peso</h2>
+    <p>Solo sirve para afinar el mapa del cuerpo y se queda en este móvil.</p>
+    <div class="numeros"><div class="numero"><label for="peso">Kilos</label><input id="peso" inputmode="decimal" value="${estado.peso ? num(estado.peso) : ''}" autocomplete="off"></div></div>
+    <button type="button" class="principal" data-accion="guardar-peso">Guardar</button>
+    <button type="button" class="secundario" data-accion="cerrar">Cancelar</button></div>`;
+  c.hidden = false;
+  $('#peso').focus();
+}
 
 // ---------- Descanso ----------
 // Guarda la hora de fin, no una cuenta atrás: si iOS duerme la app, al volver sigue siendo correcta.
@@ -765,6 +806,8 @@ function pintarProgreso() {
       ${delMusculo.map((e) => `<button type="button" data-grafica="${esc(e.ej)}" aria-pressed="${e.ej === estado.grafica}">${esc(e.ej)}</button>`).join('')}
     </div>
     <div class="grafica-caja" id="caja"></div>
+    <h2 class="gorda seccion">Tu fuerza, músculo a músculo</h2>
+    ${pintarCuerpo(estado.peso || 60, !!estado.peso)}
     <h2 class="gorda seccion">Tus últimas 26 semanas</h2>
     <div class="semanas" id="semanas"></div>
     <p class="pie">Cuanto más claro, más días entrenaste esa semana. Lo anterior a noviembre de 2026 tiene fechas aproximadas: el Excel solo decía "Semana N".</p>
@@ -973,7 +1016,10 @@ function pintar() {
   document.querySelectorAll('#menu button').forEach((b) => {
     if (b.dataset.ver === estado.vista) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
   });
-  if (estado.vista === 'hoy') pintarHoy(); else pintarProgreso();
+  svgBicho = vestirBicho(svgBase, nivelDe(datosMundo(estado.filas).entrenos).nivel, ES_CUMPLE(hoyIso()));
+  if (estado.vista === 'hoy') pintarHoy();
+  else if (estado.vista === 'mundo') pintarMundo(objetivoSemanal());
+  else pintarProgreso();
   pintarDescanso();
   pintarPendiente();
 }
@@ -1000,7 +1046,16 @@ function saludarBicho(el) {
 
 document.addEventListener('click', (ev) => {
   const t = ev.target.closest('button');
-  if (!t) return;
+  if (!t) {
+    const arbol = ev.target.closest && ev.target.closest('[data-semana]');
+    if (arbol) decir(`Semana del ${fechaCorta(arbol.dataset.semana)}: ${arbol.dataset.n} ${arbol.dataset.n === '1' ? 'entreno' : 'entrenos'}`);
+    const zona = ev.target.closest && ev.target.closest('[data-mapa]');
+    if (zona) {
+      const d = fuerzaPorMusculo(estado.peso || 60, hoyIso()).find((x) => x.musculo === zona.dataset.mapa);
+      decir(d && d.mejor ? `${d.musculo}: superas al ${d.mejor.por} % de las mujeres que entrenan` : `${zona.dataset.mapa}: sin datos del último año`);
+    }
+    return;
+  }
   if (t.dataset.ver) { guardarBorrador(); estado.vista = t.dataset.ver; $('#pantalla').scrollTo(0, 0); return pintar(); }
   if (t.dataset.dia) { guardarBorrador(); estado.dia = +t.dataset.dia; estado.ejercicio = null; return pintar(); }
   if (t.dataset.ej) { guardarBorrador(); estado.ejercicio = t.dataset.ej; $('#pantalla').scrollTo({ top: 0, behavior: 'smooth' }); return pintar(); }
@@ -1008,6 +1063,7 @@ document.addEventListener('click', (ev) => {
   if (t.dataset.grafica) { estado.grafica = t.dataset.grafica; return pintar(); }
   if (t.dataset.editar) return editarSerie(t.dataset.editar);
   if (t.dataset.nota) return editarSerie(t.dataset.nota, true);
+  if (t.dataset.anio) { const a = t.dataset.anio; if (estado.aniosAbiertos.has(a)) estado.aniosAbiertos.delete(a); else estado.aniosAbiertos.add(a); return pintar(); }
   if (t.dataset.elegir) { guardarBorrador(); estado.serieElegida[estado.ejercicio] = +t.dataset.elegir; return pintar(); }
   if (t.dataset.recuperar) return recuperarSerie(+t.dataset.recuperar);
   if (t.dataset.mover) return moverEjercicio(+t.dataset.mover, +t.dataset.v);
@@ -1029,6 +1085,9 @@ document.addEventListener('click', (ev) => {
     case 'cambiar': guardarBorrador(); return pintarCambio();
     case 'cambiar-otro': return cambiarEjercicio($('#otro').value);
     case 'ver-mas': guardarBorrador(); estado.verMas = !estado.verMas; return pintar();
+    case 'ver-planetas': estado.verPlanetas = !estado.verPlanetas; return pintar();
+    case 'peso-corporal': return pedirPeso();
+    case 'guardar-peso': { const v = parseFloat(String($('#peso').value).replace(',', '.')); if (v >= 30 && v <= 200) { estado.peso = v; guardar('peso', v); } cerrarCapa(); return pintar(); }
     case 'ver-notas': estado.todasNotas = !estado.todasNotas; return pintarNotas();
     case 'terminar': return terminar();
     case 'cerrar': cerrarCapa(); return undefined;
@@ -1066,13 +1125,17 @@ async function arrancar() {
     await subirCola();
     const ok = await descargar();
     if (estado.errorClave) { estado.codigo = null; guardar('codigo', null); return pintarBienvenida(); }
-    if (ok) { guardarBorrador(); const activo = document.activeElement; if (!activo || !activo.matches('input, textarea')) pintar(); }
+    if (ok) { guardarBorrador(); const activo = document.activeElement; if (!activo || !activo.matches('input, textarea')) pintar(); comprobarLogros(); }
   } catch (e) { /* sin red: se usa lo guardado */ }
   return undefined;
 }
 
 (async function inicio() {
-  try { svgBicho = await (await fetch('icons/mascota.svg')).text(); } catch (e) { svgBicho = ''; }
+  try { svgBase = await (await fetch('icons/mascota.svg')).text(); } catch (e) { svgBase = ''; }
+  svgBicho = svgBase;
+  // Cuando llega una versión nueva, se carga sola una vez.
+  let recargada = false;
+  if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('controllerchange', () => { if (!recargada && navigator.serviceWorker.controller) { recargada = true; location.reload(); } });
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.search.includes('sw'))) navigator.serviceWorker.register('sw.js').catch(() => {});
   if (estado.codigo) arrancar(); else pintarBienvenida();
 })();
