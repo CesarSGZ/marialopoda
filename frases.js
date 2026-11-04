@@ -184,7 +184,7 @@ const FRASES = {
     '🥊 Te estás ganando a ti misma. Qué nivel.'
   ],
   novedades: [
-    'Tu bosque tiene vida: los animales pasean, beben del río y hacen sus cosas, y la oruga entrena en su escenario. Corre a "Tu mundo" y tócalos.'
+    'Tu día de descanso ya tiene mini entreno opcional, y cada día puedes apuntar tu caminadora. En Progreso verás cómo evoluciona todo.'
   ],
   cumple: [
     'Hoy las barras te cantan, los girasoles se giran hacia ti y los elefantes tocan la trompeta.',
@@ -206,6 +206,18 @@ const FRASES = {
     'Qué suerte tengo de que seas tú.',
     'Eres mi plan favorito, más que ir al cine. Y mira que me gusta.',
     'Te debo unas palomitas por este entreno.'
+  ],
+  circuito: [
+    'Vuelta completa. Respira un poco, Lópoda.',
+    'Una vuelta menos. Ni el Mandaloriano encadena tan bien.',
+    'Vuelta hecha. Las salchichas ya te siguen a duras penas.',
+    'Otra vuelta al circuito. Este es el camino.'
+  ],
+  caminadora: [
+    'Hasta los elefantes caminan para estar en forma.',
+    'Tu perro salchicha habría necesitado el triple de pasos.',
+    'Paseo apuntado. Este es el camino, literalmente.',
+    'Cada paso cuenta, Lópoda.'
   ],
   reposo: [
     'Hoy toca descansar. El músculo también crece en el sofá.',

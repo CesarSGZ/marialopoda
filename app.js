@@ -67,7 +67,9 @@ const guardarPlan = () => guardar('plan', estado.plan);
 
 function ejerciciosDia(d) {
   const plan = planHoy();
-  const lista = estado.rutina.filter((r) => r.dia === d && r.ejercicio).sort((a, b) => a.orden - b.orden).map((r) => {
+  const base = estado.rutina.filter((r) => r.dia === d && r.ejercicio).sort((a, b) => a.orden - b.orden);
+  // Un día sin ejercicios es de descanso, salvo que hoy quiera hacer el mini entreno.
+  const lista = (base.length ? base : circuitoActivo(d) ? CIRCUITO.map((x) => ({ ...x, dia: d })) : []).map((r) => {
     const nuevo = plan.cambios[`${d}|${r.ejercicio}`];
     const copia = { ...r, original: r.ejercicio };
     if (nuevo) {
@@ -155,7 +157,8 @@ function borradorDe(r) {
   const ult = ultimaVez(r.ejercicio);
   const previa = hechas[hechas.length - 1];
   const modelo = previa || (ult && (ult.series.find((f) => f[F.SERIE] === serie) || ult.series[ult.series.length - 1]));
-  const nuevo = { serie, kg: modelo ? +modelo[F.KG] : 0, reps: modelo && modelo[F.REPS] !== '' ? +modelo[F.REPS] : r.reps };
+  const nuevo = { serie, kg: modelo ? +modelo[F.KG] : (r.kg || 0), reps: modelo && modelo[F.REPS] !== '' ? +modelo[F.REPS] : r.reps };
+  if (r.medida) nuevo.seg = modelo ? segundosDe(modelo) : 0;
   estado.borrador[r.ejercicio] = nuevo;
   return nuevo;
 }
@@ -163,7 +166,7 @@ function borradorDe(r) {
 // Solo sugiere subir si la última vez completó todas las series con las repeticiones objetivo.
 function tocaSubir(r) {
   const ult = ultimaVez(r.ejercicio);
-  if (!ult || SIN_LASTRE[r.ejercicio] || ult.series.length < r.series) return null;
+  if (!ult || r.circuito || SIN_LASTRE[r.ejercicio] || ult.series.length < r.series) return null;
   if (!ult.series.every((f) => +f[F.REPS] >= r.reps)) return null;
   const kg = Math.max(...ult.series.map((f) => +f[F.KG]));
   return kg > 0 ? kg + r.salto : null;
@@ -201,7 +204,7 @@ function fusionar(servidor) {
 
 // Todas las notas, de la más reciente a la más antigua.
 function todasLasNotas() {
-  return estado.filas.filter((f) => String(f[F.NOTA] || '').trim()).concat(estado.sueltas)
+  return estado.filas.filter((f) => notaDe(f).trim()).concat(estado.sueltas)
     .sort((a, b) => (a[F.FECHA] < b[F.FECHA] ? 1 : a[F.FECHA] > b[F.FECHA] ? -1 : 0));
 }
 
@@ -210,8 +213,10 @@ function pintarNotas() {
   const visibles = estado.todasNotas ? notas : notas.slice(0, 5);
   $('#notas').innerHTML = notas.length ? `<ul class="notas">${visibles.map((f) => {
     const suelta = f[F.EJ] === NOTA_SUELTA;
-    const serie = suelta ? '' : `<small>Serie ${f[F.SERIE]}${f[F.KG] !== '' ? `, ${num(+f[F.KG])} kg` : ''}${f[F.REPS] !== '' ? ` × ${f[F.REPS]}` : ''}</small>`;
-    return `<li><span class="nota-fecha">${fechaCorta(f[F.FECHA])}</span><div>${suelta ? '' : `<b>${esc(f[F.EJ])}</b>`}${serie}<p>${esc(f[F.NOTA])}</p></div></li>`;
+    const serie = suelta ? '' : ES_MEDIDO.has(f[F.EJ])
+      ? `<small>Vuelta ${f[F.SERIE]}, ${miles(+f[F.REPS])} m${segundosDe(f) ? ` en ${aTiempo(segundosDe(f))}` : ''}</small>`
+      : `<small>${ES_CIRCUITO.has(f[F.EJ]) ? 'Vuelta' : 'Serie'} ${f[F.SERIE]}${f[F.KG] !== '' ? `, ${num(+f[F.KG])} kg` : ''}${f[F.REPS] !== '' ? ` × ${f[F.REPS]}` : ''}</small>`;
+    return `<li><span class="nota-fecha">${fechaCorta(f[F.FECHA])}</span><div>${suelta ? '' : `<b>${esc(f[F.EJ])}</b>`}${serie}<p>${esc(notaDe(f))}</p></div></li>`;
   }).join('')}</ul>${notas.length > 5 ? `<button type="button" class="ver-mas" data-accion="ver-notas">${estado.todasNotas ? 'Ver menos' : `Ver las ${notas.length}`}</button>` : ''}`
     : '<p class="pie">Cuando añadas una nota a una serie, la verás aquí con su fecha y su ejercicio.</p>';
 }
@@ -304,18 +309,21 @@ function pintarHoy() {
       <p class="saludo">${esc(estado.saludo)}</p>
       <button class="bicho" type="button" aria-label="Saludar a Marialópoda" data-accion="bicho">${svgBicho}</button>
     </div>
-    <h1 class="gorda titulo-dia">Día ${estado.dia}, ${esc(dia.nombre.toLowerCase())}</h1>
+    <h1 class="gorda titulo-dia">Día ${estado.dia}, ${lista.length && lista[0].nombre === 'Mini entreno' ? 'mini entreno' : esc(dia.nombre.toLowerCase())}</h1>
     <div class="dias" role="group" aria-label="Elegir día">
       ${dias.map((d) => `<button type="button" data-dia="${d.dia}" aria-pressed="${d.dia === estado.dia}"><b>${d.dia}</b>${esc(d.nombre)}</button>`).join('')}
     </div>`;
   if (!lista.length) {
     if (!estado.fraseReposo) estado.fraseReposo = azar(FRASES.reposo);
     m.innerHTML = `${cabecera}<section class="reposo"><p class="gorda">${esc(estado.fraseReposo)}</p>
-      <p>Si hoy te apetece entrenar igualmente, elige otro día arriba.</p></section>`;
+      <p>¿Te apetece moverte un poco? Tienes un mini entreno tranquilo: pelota, remo, sentadilla y esquí en circuito, 3 vueltas, y abdominales para acabar.</p>
+      <button type="button" class="hecha" data-accion="circuito">Hacer el mini entreno</button>
+      <p>Si prefieres pesas, elige otro día arriba.</p></section>
+      ${pintarCaminadoraHoy()}`;
     return;
   }
   const pendiente = lista.find((r) => !seriesDe(r).completo);
-  if (!estado.ejercicio || !lista.some((r) => r.ejercicio === estado.ejercicio)) estado.ejercicio = (pendiente || lista[0]).ejercicio;
+  if (!estado.ejercicio || !lista.some((r) => r.ejercicio === estado.ejercicio)) estado.ejercicio = (siguienteDelCircuito(lista) || pendiente || lista[0]).ejercicio;
   const r = lista.find((x) => x.ejercicio === estado.ejercicio);
   const hayAlgo = lista.some((x) => filasHoy(estado.dia, x.ejercicio).length);
 
@@ -334,11 +342,14 @@ function pintarHoy() {
           }).join('')}</span></button></li>`;
       }).join('')}
     </ul>
+    ${r.circuito || r.final ? (hayAlgo ? '' : '<button class="saltar sin-circuito" type="button" data-accion="sin-circuito">Hoy mejor descanso</button>') : ''}
+    ${pintarCaminadoraHoy()}
     ${hayAlgo ? '<button class="terminar" type="button" data-accion="terminar">Terminar entreno</button>' : ''}`;
 }
 
 // Las sesiones anteriores en filas: cada celda se rellena según su peso, para ver de un vistazo si sube.
 function pintarAnteriores(r) {
+  if (r.medida) return pintarAnterioresMedidos(r);
   const cuantas = estado.verMas ? 6 : 2;
   const todas = sesionesPrevias(r.ejercicio, 7);
   if (!todas.length) return '<p class="ultima">Primera vez. Busca un peso cómodo y apúntalo.</p>';
@@ -356,7 +367,7 @@ function pintarAnteriores(r) {
       const kg = +f[F.KG];
       celdas.push(`<span class="celda" style="--h:${Math.round(kg / techo * 100)}%"><b>${kg ? num(kg) : 'Libre'}</b><small>${f[F.REPS] === '' ? 'sin repes' : `× ${f[F.REPS]}`}</small></span>`);
     }
-    const notas = s.series.filter((f) => String(f[F.NOTA] || '').trim()).map((f) => `<p class="nota-antes">Serie ${f[F.SERIE]}: ${esc(f[F.NOTA])}</p>`).join('');
+    const notas = s.series.filter((f) => notaDe(f).trim()).map((f) => `<p class="nota-antes">${r.circuito ? 'Vuelta' : 'Serie'} ${f[F.SERIE]}: ${esc(notaDe(f))}</p>`).join('');
     return `<div class="fila-antes ${i ? '' : 'reciente'}" style="--cols:${columnas}">
       <span class="fecha">${fechaCorta(s.fecha).slice(0, -3)}${dif ? `<em class="${dif > 0 ? 'sube' : 'baja'}">${dif > 0 ? '+' : '−'}${num(Math.abs(dif))}</em>` : ''}</span>${celdas.join('')}</div>${notas}`;
   }).join('');
@@ -384,37 +395,41 @@ function pintarFoco(r) {
   const b = borradorDe(r);
   const marca = mejorMarca(r.ejercicio);
   const sub = hechas.length ? null : tocaSubir(r);
+  const palabra = r.circuito ? 'Vuelta' : 'Serie';
+  const mejorSeg = r.medida ? mejorTiempo(r.ejercicio, b.reps) : 0;
   const huecos = Math.max(r.series, Math.max(0, ...hechas.map((f) => f[F.SERIE])), completo ? 0 : s.activa);
   const celdas = [];
   for (let i = 1; i <= huecos; i++) {
     const f = hechas.find((x) => x[F.SERIE] === i);
-    if (f) celdas.push(`<button type="button" class="ok" data-editar="${esc(f[F.ID])}" aria-label="Corregir serie ${i}${f[F.NOTA] ? ', tiene nota' : ''}">${f[F.REPS] === '' ? '?' : f[F.REPS]}${f[F.NOTA] ? ' ✎' : ''}<small>${num(f[F.KG])} kg</small></button>`);
-    else if (s.saltos.includes(i)) celdas.push(`<button type="button" class="saltada" data-recuperar="${i}" aria-label="Recuperar serie ${i}">Saltada<small>Recuperar</small></button>`);
+    if (f && r.medida) celdas.push(`<button type="button" class="ok" data-editar="${esc(f[F.ID])}" aria-label="Corregir vuelta ${i}">${segundosDe(f) ? aTiempo(segundosDe(f)) : 'Sin tiempo'}${notaDe(f) ? ' ✎' : ''}<small>${miles(+f[F.REPS])} m</small></button>`);
+    else if (f) celdas.push(`<button type="button" class="ok" data-editar="${esc(f[F.ID])}" aria-label="Corregir ${palabra.toLowerCase()} ${i}${notaDe(f) ? ', tiene nota' : ''}">${f[F.REPS] === '' ? '?' : f[F.REPS]}${notaDe(f) ? ' ✎' : ''}<small>${num(f[F.KG])} kg</small></button>`);
+    else if (s.saltos.includes(i)) celdas.push(`<button type="button" class="saltada" data-recuperar="${i}" aria-label="Recuperar ${palabra.toLowerCase()} ${i}">Saltada<small>Recuperar</small></button>`);
     else if (i === s.activa) celdas.push('<button type="button" class="ahora" disabled>Ahora</button>');
-    else celdas.push(`<button type="button" data-elegir="${i}">Serie ${i}</button>`);
+    else celdas.push(`<button type="button" data-elegir="${i}">${palabra} ${i}</button>`);
   }
   const discosL = discos(b.kg);
   const ultimaHecha = hechas[hechas.length - 1];
   return `<section class="foco">
+    ${pintarCabCircuito(r, ejerciciosDia(estado.dia))}
     <div class="foco-cab">
       <h2 class="gorda">${esc(r.ejercicio)}</h2>
-      <button type="button" class="cambiar" data-accion="cambiar">Cambiar</button>
+      ${r.circuito ? '' : '<button type="button" class="cambiar" data-accion="cambiar">Cambiar</button>'}
     </div>
     ${r.ejercicio !== r.original ? `<p class="ultima">Hoy en lugar de ${esc(r.original.toLowerCase())}.</p>` : ''}
     ${pintarAnteriores(r)}
     <div class="bajo-antes">
-      <span>${marca.kg ? `Tu récord: ${num(marca.kg)} kg` : ''}</span>
+      <span>${r.medida ? (mejorSeg ? `Tu mejor: ${aTiempo(mejorSeg)} en ${miles(b.reps)} m` : '') : marca.kg ? `Tu récord: ${num(marca.kg)} kg` : ''}</span>
       ${sesionesPrevias(r.ejercicio, 3).length > 2 ? `<button type="button" class="ver-mas" data-accion="ver-mas">${estado.verMas ? 'Ver menos' : 'Ver más'}</button>` : ''}
     </div>
     ${pintarDuelo(r, b.kg, b.reps)}
     ${sub ? `<button type="button" class="subir" data-subir="${sub}">Las hiciste todas a ${r.reps} o más. ¿Pruebas con ${num(sub)} kg?</button>` : ''}
     ${completo ? `<p class="ultima" style="color:var(--tinta);margin-top:12px">Ejercicio terminado. Si te queda una más, adelante.</p>` : ''}
-    <div class="barra" aria-hidden="true">
+    ${r.circuito ? '' : `<div class="barra" aria-hidden="true">
       <div class="lado izq">${discosL.map((c) => `<span class="disco ${c}"></span>`).join('')}</div>
       <div class="centro"></div>
       <div class="lado der">${discosL.map((c) => `<span class="disco ${c}"></span>`).join('')}</div>
-    </div>
-    <div class="numeros">
+    </div>`}
+    ${r.medida ? pintarNumerosMedidos(b) : `<div class="numeros">
       <div class="numero"><label for="kg">Kilos</label>
         <input id="kg" inputmode="decimal" value="${num(b.kg)}" autocomplete="off">
         <div class="pasos"><button type="button" data-paso="kg" data-v="${-r.salto}" aria-label="Quitar ${num(r.salto)} kilos">−</button><button type="button" data-paso="kg" data-v="${r.salto}" aria-label="Añadir ${num(r.salto)} kilos">+</button></div>
@@ -423,19 +438,24 @@ function pintarFoco(r) {
         <input id="reps" inputmode="numeric" value="${b.reps}" autocomplete="off">
         <div class="pasos"><button type="button" data-paso="reps" data-v="-1" aria-label="Una repetición menos">−</button><button type="button" data-paso="reps" data-v="1" aria-label="Una repetición más">+</button></div>
       </div>
-    </div>
-    <button type="button" class="hecha" data-accion="hecha">Serie ${b.serie} hecha</button>
+    </div>`}
+    <button type="button" class="hecha" data-accion="hecha">${palabra} ${b.serie} hecha</button>
     <div class="series">${celdas.join('')}</div>
     <div class="acciones-serie">
-      ${completo ? '' : `<button type="button" class="saltar" data-accion="saltar">Saltar serie ${s.activa}</button>`}
-      ${ultimaHecha ? `<button type="button" class="saltar" data-nota="${esc(ultimaHecha[F.ID])}">${ultimaHecha[F.NOTA] ? 'Ver nota' : 'Añadir nota'} de la serie ${ultimaHecha[F.SERIE]}</button>` : ''}
+      ${completo ? '' : `<button type="button" class="saltar" data-accion="saltar">Saltar ${palabra.toLowerCase()} ${s.activa}</button>`}
+      ${ultimaHecha ? `<button type="button" class="saltar" data-nota="${esc(ultimaHecha[F.ID])}">${notaDe(ultimaHecha) ? 'Ver nota' : 'Añadir nota'} de la ${palabra.toLowerCase()} ${ultimaHecha[F.SERIE]}</button>` : ''}
     </div>
   </section>`;
 }
 
 function pasarAlSiguiente(r) {
+  const lista = ejerciciosDia(estado.dia);
+  if (r.circuito) {
+    const toca = siguienteDelCircuito(lista, r);
+    if (toca) { estado.ejercicio = toca.ejercicio; return; }
+  }
   if (!seriesDe(r).completo) return;
-  const sig = ejerciciosDia(estado.dia).find((x) => !seriesDe(x).completo);
+  const sig = lista.find((x) => !seriesDe(x).completo);
   if (sig) estado.ejercicio = sig.ejercicio;
 }
 
@@ -528,9 +548,12 @@ function serieHecha() {
   const lista = ejerciciosDia(estado.dia);
   const r = lista.find((x) => x.ejercicio === estado.ejercicio);
   const b = borradorDe(r);
-  const kg = leerNumero('kg', b.kg), reps = leerNumero('reps', b.reps);
+  if (r.medida) guardarBorrador();
+  const kg = r.medida ? 0 : leerNumero('kg', b.kg), reps = r.medida ? b.reps : leerNumero('reps', b.reps);
+  const seg = r.medida ? b.seg : 0;
+  const mejorSeg = r.medida ? mejorTiempo(r.ejercicio, reps, hoyIso()) : 0;
   const marca = mejorMarca(r.ejercicio);
-  const o = { id: nuevoId(), fecha: hoyIso(), dia: estado.dia, ejercicio: r.ejercicio, musculo: r.musculo, serie: b.serie, reps, kg, nota: '' };
+  const o = { id: nuevoId(), fecha: hoyIso(), dia: estado.dia, ejercicio: r.ejercicio, musculo: r.musculo, serie: b.serie, reps, kg, nota: componerNota(seg, '') };
   estado.filas.push(aFila(o));
   encolar({ tipo: 'guardar', fila: o });
   const esRecord = SIN_LASTRE[r.ejercicio]
@@ -542,14 +565,18 @@ function serieHecha() {
   const adelanta = rival && e1rmDe(kg, reps) > rival.valor && !estado.dueloCelebrado[r.ejercicio];
   if (adelanta) estado.dueloCelebrado[r.ejercicio] = true;
   const boton = document.querySelector('[data-accion="hecha"]').getBoundingClientRect();
+  // En el circuito se encadenan las estaciones: el descanso llega al acabar la vuelta.
+  const finVuelta = r.circuito && vueltaCompleta(lista, b.serie);
   pasarAlSiguiente(r);
-  empezarDescanso();
+  if (!r.circuito || finVuelta) empezarDescanso();
   pedirPantalla();
   pintar();
   flotar(florDe(o.id), boton.left + boton.width / 2, boton.top);
   if (esRecord) return celebrar(r.ejercicio, kg, reps, kg > marca.kg);
   const apuntadas = estado.filas.filter((f) => f[F.ORIGEN] === 'app').length;
-  if (adelanta) decir(azar(FRASES.duelo));
+  if (seg && mejorSeg && seg < mejorSeg) { decir(`¡Tu mejor tiempo en ${miles(reps)} m! ${aTiempo(seg)}`); lluvia(['🌻', '🌸', '✨'], 24); }
+  else if (finVuelta) decir(azar(FRASES.circuito));
+  else if (adelanta) decir(azar(FRASES.duelo));
   else if (apuntadas % 50 === 0) { decir(`¡Serie número ${apuntadas} en la app! Tienes un jardín enorme.`); lluvia(['🌻', '🌸', '🌼'], 30); }
   else if (terminado && Math.random() < 0.6) pasearSalchicha(azar(FRASES.salchicha));
   else if (terminado) decir(azar(FRASES.ejercicio));
@@ -575,8 +602,11 @@ function celebrar(ej, kg, reps, porPeso) {
 }
 
 function terminar() {
-  const hoy = estado.filas.filter((f) => f[F.FECHA] === hoyIso());
+  const hoy = estado.filas.filter((f) => f[F.FECHA] === hoyIso() && f[F.EJ] !== CAMINADORA);
   const total = hoy.reduce((s, f) => s + (+f[F.KG]) * (+f[F.REPS] || 0), 0);
+  const metros = hoy.filter((f) => ES_MEDIDO.has(f[F.EJ])).reduce((s, f) => s + (+f[F.REPS] || 0), 0);
+  const caminatas = caminatasDeHoy().map(datosCaminata);
+  const minCamina = caminatas.reduce((s, c) => s + c.min, 0), kmCamina = caminatas.reduce((s, c) => s + c.km, 0);
   const ejercicios = new Set(hoy.map((f) => f[F.EJ])).size;
   // Un perro salchicha adulto pesa unos 9 kg, y un elefante unos 5.000.
   const salchichas = Math.round(total / 9);
@@ -591,8 +621,11 @@ function terminar() {
   c.innerHTML = `<div class="tarjeta" role="dialog" aria-label="Entreno terminado">
     <div class="bicho salta">${svgBicho}</div>
     <h2 class="gorda">${esc(azar(FRASES.fin))}</h2>
-    <p class="cifra">${miles(total)} kg</p>
-    <p>Eso es lo que has movido hoy: ${equivale}, en ${hoy.length} ${hoy.length === 1 ? 'serie' : 'series'} y ${ejercicios} ${ejercicios === 1 ? 'ejercicio' : 'ejercicios'}.</p>
+    <p class="cifra">${total ? `${miles(total)} kg` : `${miles(metros)} m`}</p>
+    ${total ? `<p>Eso es lo que has movido hoy: ${equivale}, en ${hoy.length} ${hoy.length === 1 ? 'serie' : 'series'} y ${ejercicios} ${ejercicios === 1 ? 'ejercicio' : 'ejercicios'}.</p>` : ''}
+    ${metros ? `<p>🚣 ${miles(metros)} metros entre remo y esquí.</p>` : ''}
+    ${minCamina ? `<p>🚶‍♀️ ${num(minCamina)} min de caminadora, ${textoKm(kmCamina)}.</p>` : ''}
+    <button type="button" class="otra" data-accion="caminadora">🚶‍♀️ ${minCamina ? 'Añadir más caminadora' : '¿Has hecho caminadora?'}</button>
     ${pintarJardin('jardin final')}
     <p>🌳 Tu árbol de esta semana ya lleva ${semana} ${semana === 1 ? 'entreno' : 'entrenos'}.</p>
     ${ganados ? `<p>🥊 Has ido por delante de tu yo del pasado en ${ganados} ${ganados === 1 ? 'ejercicio' : 'ejercicios'}.</p>` : ''}
@@ -611,22 +644,26 @@ function terminar() {
 
 function entrenosDeEstaSemana() {
   const hoy = new Date(hoyIso()), lunes = new Date(hoy.getTime() - ((hoy.getUTCDay() + 6) % 7) * 864e5).toISOString().slice(0, 10);
-  return new Set(estado.filas.filter((f) => f[F.ORIGEN] === 'app' && f[F.FECHA] >= lunes).map((f) => f[F.FECHA])).size;
+  return new Set(estado.filas.filter((f) => f[F.ORIGEN] === 'app' && f[F.EJ] !== CAMINADORA && f[F.FECHA] >= lunes).map((f) => f[F.FECHA])).size;
 }
 
 function editarSerie(id, soloNota) {
   const f = estado.filas.find((x) => x[F.ID] === id);
   if (!f) return;
+  if (f[F.EJ] === CAMINADORA) { abrirCaminadora(id); return; }
   estado.editando = id;
   const c = $('#capa');
+  const seg = segundosDe(f);
+  const campos = ES_MEDIDO.has(f[F.EJ])
+    ? `<div class="numero"><label for="emetros">Metros</label><input id="emetros" inputmode="numeric" value="${f[F.REPS]}"></div>
+      <div class="numero"><label for="etmin">Tiempo</label><div class="reloj"><input id="etmin" inputmode="numeric" value="${Math.floor(seg / 60)}" aria-label="Minutos"><span>:</span><input id="etseg" inputmode="numeric" value="${String(seg % 60).padStart(2, '0')}" aria-label="Segundos"></div></div>`
+    : `<div class="numero"><label for="ekg">Kilos</label><input id="ekg" inputmode="decimal" value="${num(f[F.KG])}"></div>
+      <div class="numero"><label for="ereps">Repes</label><input id="ereps" inputmode="numeric" value="${f[F.REPS]}"></div>`;
   c.innerHTML = `<div class="tarjeta sobria" role="dialog" aria-label="Corregir serie">
-    <h2 class="gorda">Serie ${f[F.SERIE]}</h2><p>${esc(f[F.EJ])}</p>
-    <div class="numeros">
-      <div class="numero"><label for="ekg">Kilos</label><input id="ekg" inputmode="decimal" value="${num(f[F.KG])}"></div>
-      <div class="numero"><label for="ereps">Repes</label><input id="ereps" inputmode="numeric" value="${f[F.REPS]}"></div>
-    </div>
+    <h2 class="gorda">${ES_CIRCUITO.has(f[F.EJ]) ? 'Vuelta' : 'Serie'} ${f[F.SERIE]}</h2><p>${esc(f[F.EJ])}</p>
+    <div class="numeros">${campos}</div>
     <label class="nota-label" for="enota">Nota (opcional)</label>
-    <textarea class="nota" id="enota" rows="2" maxlength="300" placeholder="Tirón en la lumbar, cambio de máquina...">${esc(f[F.NOTA] || '')}</textarea>
+    <textarea class="nota" id="enota" rows="2" maxlength="300" placeholder="Tirón en la lumbar, cambio de máquina...">${esc(notaDe(f))}</textarea>
     <button type="button" class="principal" data-accion="guardar-edicion">Guardar cambios</button>
     <button type="button" class="secundario" data-accion="borrar-serie">Borrar serie</button>
     <button type="button" class="secundario" data-accion="cerrar">Cancelar</button>
@@ -638,9 +675,14 @@ function editarSerie(id, soloNota) {
 function guardarEdicion() {
   const f = estado.filas.find((x) => x[F.ID] === estado.editando);
   if (!f) return cerrarCapa();
-  f[F.KG] = leerNumero('ekg', f[F.KG]);
-  f[F.REPS] = leerNumero('ereps', +f[F.REPS] || 0);
-  f[F.NOTA] = $('#enota').value.trim();
+  if (ES_MEDIDO.has(f[F.EJ])) {
+    f[F.REPS] = leerNumero('emetros', +f[F.REPS] || 0);
+    f[F.NOTA] = componerNota(leerTiempo('etmin', 'etseg'), $('#enota').value.trim());
+  } else {
+    f[F.KG] = leerNumero('ekg', f[F.KG]);
+    f[F.REPS] = leerNumero('ereps', +f[F.REPS] || 0);
+    f[F.NOTA] = $('#enota').value.trim();
+  }
   encolar({ tipo: 'guardar', fila: { id: f[F.ID], fecha: f[F.FECHA], dia: f[F.DIA], ejercicio: f[F.EJ], musculo: f[F.MUSC], serie: f[F.SERIE], reps: f[F.REPS], kg: f[F.KG], nota: f[F.NOTA] } });
   estado.borrador = {};
   cerrarCapa();
@@ -770,7 +812,8 @@ function pintarProgreso() {
   const m = $('#pantalla');
   const { orden, lista } = resumenes();
   if (!lista.length) { m.innerHTML = '<p>Todavía no hay datos: apunta tu primer entreno y aquí saldrá tu progreso.</p>'; return; }
-  const fechas = new Set(estado.filas.map((f) => f[F.FECHA].slice(0, 10)));
+  const deFuerza = estado.filas.filter((f) => f[F.EJ] !== CAMINADORA);
+  const fechas = new Set(deFuerza.map((f) => f[F.FECHA].slice(0, 10)));
   const primeraF = [...fechas].sort()[0];
   const semanas = Math.max(1, Math.round((new Date(hoyIso()) - new Date(primeraF)) / 6048e5));
   const totalKg = estado.filas.reduce((s, f) => s + (+f[F.KG]) * (+f[F.REPS] || 0), 0);
@@ -786,7 +829,7 @@ function pintarProgreso() {
       <h1 class="gorda">Lo fuerte que te has puesto</h1>
       <button class="bicho" type="button" aria-label="Saludar a Marialópoda" data-accion="bicho">${svgBicho}</button>
     </div>
-    <p class="datos-vida"><b>${semanas} semanas</b> entrenando, <b>${miles(estado.filas.length)} series</b> apuntadas y más de <b>${miles(toneladas)} toneladas</b> movidas.${florecidas ? ` Y <b>${miles(florecidas)} ${florecidas === 1 ? 'flor plantada' : 'flores plantadas'}</b> en tu jardín 🌻` : ''}</p>
+    <p class="datos-vida"><b>${semanas} semanas</b> entrenando, <b>${miles(deFuerza.length)} series</b> apuntadas y más de <b>${miles(toneladas)} toneladas</b> movidas.${florecidas ? ` Y <b>${miles(florecidas)} ${florecidas === 1 ? 'flor plantada' : 'flores plantadas'}</b> en tu jardín 🌻` : ''}</p>
     ${hace ? `<div class="hace">Hace un año, en ${esc(hace.ej.toLowerCase())}, movías ${num(hace.antes)} kg.<span class="gorda">Ahora mueves ${num(hace.ahora)}.</span></div>` : ''}
     <h2 class="gorda seccion">Por músculo</h2>
     <div class="chips" role="group" aria-label="Elegir músculo">
@@ -796,6 +839,8 @@ function pintarProgreso() {
       ${delMusculo.map((e) => `<button type="button" data-grafica="${esc(e.ej)}" aria-pressed="${e.ej === estado.grafica}">${esc(e.ej)}</button>`).join('')}
     </div>
     <div class="grafica-caja" id="caja"></div>
+    <h2 class="gorda seccion">Mini entreno y caminadora</h2>
+    <div id="evolucion"></div>
     <h2 class="gorda seccion">Tu fuerza, músculo a músculo</h2>
     ${pintarCuerpo(PESO_REFERENCIA)}
     <h2 class="gorda seccion">Tus últimas 26 semanas</h2>
@@ -806,6 +851,7 @@ function pintarProgreso() {
     <h2 class="gorda seccion">Tus notas</h2>
     <div id="notas"></div>`;
   pintarGrafica(lista.find((e) => e.ej === estado.grafica));
+  pintarEvolucionCircuito();
   pintarSemanas();
   pintarSubidas(lista, conRecord);
   pintarNotas();
@@ -823,7 +869,7 @@ function pintarSemanas() {
   const dow = (hoy.getUTCDay() + 6) % 7;
   const lunes = new Date(hoy.getTime() - dow * 864e5);
   const cuenta = new Map();
-  const dias = new Set(estado.filas.map((f) => f[F.FECHA]));
+  const dias = new Set(estado.filas.filter((f) => f[F.EJ] !== CAMINADORA).map((f) => f[F.FECHA]));
   dias.forEach((iso) => {
     const d = new Date(iso);
     const n = Math.floor((lunes.getTime() + 6048e5 - d.getTime() - 1) / 6048e5);
@@ -1017,6 +1063,7 @@ function pintar() {
 
 function guardarBorrador() {
   const b = estado.borrador[estado.ejercicio];
+  if (b && $('#metros')) { b.reps = leerNumero('metros', b.reps); b.seg = leerTiempo('tmin', 'tseg'); return; }
   if (!b || !$('#kg')) return;
   b.kg = leerNumero('kg', b.kg); b.reps = leerNumero('reps', b.reps);
 }
@@ -1074,6 +1121,15 @@ document.addEventListener('click', (ev) => {
   if (t.dataset.mover) return moverEjercicio(+t.dataset.mover, +t.dataset.v);
   if (t.dataset.cambiar) return cambiarEjercicio(t.dataset.cambiar);
   if (t.dataset.subir) { estado.borrador[estado.ejercicio].kg = +t.dataset.subir; return pintar(); }
+  if (t.dataset.evolucion) { estado.evolucion = t.dataset.evolucion; return pintarEvolucionCircuito(); }
+  if (t.dataset.caminata) return abrirCaminadora(t.dataset.caminata);
+  if (t.dataset.cam) return pasoCaminadora(t.dataset.cam, +t.dataset.v);
+  if (t.dataset.pasoMedida) {
+    guardarBorrador();
+    const b = estado.borrador[estado.ejercicio], clave = t.dataset.pasoMedida === 'metros' ? 'reps' : 'seg';
+    b[clave] = Math.max(0, b[clave] + +t.dataset.v);
+    return pintar();
+  }
   if (t.dataset.paso) {
     const v = +t.dataset.v, id = t.dataset.paso;
     const b = estado.borrador[estado.ejercicio];
@@ -1084,6 +1140,10 @@ document.addEventListener('click', (ev) => {
   }
   switch (t.dataset.accion) {
     case 'hecha': return serieHecha();
+    case 'circuito': planHoy().circuito = true; guardarPlan(); estado.ejercicio = null; return pintar();
+    case 'sin-circuito': planHoy().circuito = false; guardarPlan(); estado.ejercicio = null; return pintar();
+    case 'caminadora': return abrirCaminadora();
+    case 'guardar-caminadora': return guardarCaminadora();
     case 'saltar': guardarBorrador(); return saltarSerie();
     case 'ordenar': guardarBorrador(); return pintarOrden();
     case 'cerrar-orden': cerrarCapa(); estado.ejercicio = null; return pintar();
@@ -1108,9 +1168,11 @@ document.addEventListener('click', (ev) => {
 // Un toque en la cifra selecciona todo para sobrescribirla directamente.
 // Mover la barra del tiempo del bosque detiene la reproducción y lleva a esa semana.
 document.addEventListener('input', (ev) => {
-  if (ev.target.id !== 'tiempo-bosque') return;
+  if (['cinc', 'cvel', 'cmin'].includes(ev.target.id)) return actualizarKmCaminadora();
+  if (ev.target.id !== 'tiempo-bosque') return undefined;
   pararBosque();
   verBosqueEn(+ev.target.value);
+  return undefined;
 });
 
 document.addEventListener('focusin', (ev) => { if (ev.target.matches('.numero input')) ev.target.select(); });

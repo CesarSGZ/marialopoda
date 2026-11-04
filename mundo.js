@@ -16,7 +16,7 @@ function datosMundo(filas) {
   const ultima = filas[filas.length - 1];
   const clave = `${filas.length}|${ultima ? ultima[F.ID] : ''}`;
   if (memoMundo.clave === clave) return memoMundo.datos;
-  const fechas = [...new Set(filas.map((f) => f[F.FECHA]))].filter((x) => /^\d{4}-\d{2}-\d{2}$/.test(x)).sort();
+  const fechas = [...new Set(filas.filter((f) => f[F.EJ] !== 'Caminadora').map((f) => f[F.FECHA]))].filter((x) => /^\d{4}-\d{2}-\d{2}$/.test(x)).sort();
   const semanas = new Map();
   fechas.forEach((f) => { const l = lunesDe(f); semanas.set(l, (semanas.get(l) || 0) + 1); });
   const kilos = filas.reduce((s, f) => s + (+f[F.KG] || 0) * (+f[F.REPS] || 0), 0);
@@ -350,6 +350,7 @@ function comprobarLogros() {
   if (!visto || visto.entrenos === undefined) {
     mostrarCarta(cartaLogro('Tu mundo ha crecido', '🐛🌳🐘', azar(FRASES.novedades)));
   } else {
+    if (!leer('avisoCircuito', false)) { guardar('avisoCircuito', true); mostrarCarta(cartaLogro('Novedad', '🚣🚶‍♀️', azar(FRASES.novedades))); }
     if (n > visto.nivel) mostrarCarta(cartaLogro(`¡Nivel ${n}!`, tituloNivel(n), `${azar(FRASES.nivel)}${ACCESORIOS.some((a) => a.n === n) ? ` Nuevo: ${ACCESORIOS.find((a) => a.n === n).nombre.toLowerCase()}.` : ''}`));
     novedadesBosque(visto.entrenos, d.entrenos).forEach((x) => mostrarCarta(cartaLogro(x.titulo, x.grande, x.texto || azar(FRASES.bosque))));
   }

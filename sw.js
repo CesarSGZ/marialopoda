@@ -1,6 +1,6 @@
 // Guarda la app en el móvil para que funcione sin cobertura. Sube VERSION al publicar cambios.
-const VERSION = 'marialopoda-12';
-const FICHEROS = ['./', './index.html', './styles.css', './app.js', './mundo.js', './bosque.js', './vida.js', './frases.js', './manifest.webmanifest',
+const VERSION = 'marialopoda-13';
+const FICHEROS = ['./', './index.html', './styles.css', './app.js', './mundo.js', './bosque.js', './vida.js', './circuito.js', './frases.js', './manifest.webmanifest',
   './icons/mascota.svg', './icons/icon-180.png', './icons/icon-192.png', './icons/icon-512.png',
   './fonts/bagel.woff2', './fonts/figtree.woff2'];
 
