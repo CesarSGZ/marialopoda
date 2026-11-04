@@ -250,7 +250,7 @@ function figuraCuerpo(cx, zonas, datos, etiqueta) {
     ${Object.entries(zonas).map(([m, formas]) => `<g class="zona ${clase(m)}" data-mapa="${m}">${formas.join('')}</g>`).join('')}
     <text y="292" text-anchor="middle">${etiqueta}</text></g>`;
 }
-function pintarCuerpo(peso, conPeso) {
+function pintarCuerpo(peso) {
   const datos = fuerzaPorMusculo(peso, hoyIso());
   const ordenados = datos.filter((d) => d.mejor).sort((a, b) => b.mejor.por - a.mejor.por);
   const sin = datos.filter((d) => !d.mejor).map((d) => d.musculo.toLowerCase());
@@ -258,8 +258,7 @@ function pintarCuerpo(peso, conPeso) {
     <div class="leyenda">${NOMBRE_NIVEL.map((n, i) => `<span><i class="n${i + 1}"></i>${n}</span>`).join('')}</div></div>
     <ul class="fuerzas">${ordenados.map((d) => `<li><div><b>${esc(d.musculo)}</b><small>${d.mejor.pruebas.map((p) => `${esc(p.ej)}: unos ${miles(p.rm)} kg`).join('. ')}</small></div><div class="fuerza-dato"><b>Supera al ${d.mejor.por} %</b><small>${d.mejor.nivel < 0 ? 'Empezando' : NOMBRE_NIVEL[d.mejor.nivel]}</small></div></li>`).join('')}</ul>
     ${sin.length ? `<p class="pie">Sin datos del último año: ${esc(sin.join(', '))}.</p>` : ''}
-    <p class="pie">Es una estimación del 1RM con tu mejor sesión del último año, promediando los ejercicios de cada músculo. Compara con mujeres que entrenan y registran sus marcas en Strength Level, no con toda la población, que en general entrena mucho menos. Las máquinas y las mancuernas no equivalen exactamente a la barra, así que tómalo como orientación. ${conPeso ? '' : 'Calculado suponiendo 60 kg de peso. '}</p>
-    <button type="button" class="ver-mas" data-accion="peso-corporal">${conPeso ? `Tu peso: ${num(peso)} kg. Cambiar` : 'Poner mi peso para afinarlo'}</button>`;
+    <p class="pie">Es una estimación del 1RM con tu mejor sesión del último año, promediando los ejercicios de cada músculo. Compara con mujeres que entrenan y registran sus marcas en Strength Level, no con toda la población, que en general entrena mucho menos. Las máquinas y las mancuernas no equivalen exactamente a la barra, así que tómalo como orientación.</p>`;
 }
 
 // ---------- Duelos contra tu yo del pasado ----------

@@ -8,6 +8,8 @@ const guardar = (k, v) => { try { localStorage.setItem('mlp.' + k, JSON.stringif
 const F = { FECHA: 0, DIA: 1, EJ: 2, MUSC: 3, SERIE: 4, REPS: 5, KG: 6, NOTA: 7, ORIGEN: 8, ID: 9 };
 
 const NOTA_SUELTA = 'Nota';
+// El mapa del cuerpo compara con el baremo de una mujer de este peso; no se le pide el suyo.
+const PESO_REFERENCIA = 60;
 
 const estado = {
   sueltas: leer('sueltas', []),
@@ -16,7 +18,6 @@ const estado = {
   aniosAbiertos: new Set(),
   cartas: [],
   dueloCelebrado: {},
-  peso: leer('peso', null),
   floresVistas: Infinity,
   toquesBicho: 0,
   codigo: leer('codigo', null),
@@ -671,16 +672,6 @@ function mostrarCarta(html) {
   c.innerHTML = html; c.hidden = false; confeti();
 }
 
-function pedirPeso() {
-  const c = $('#capa');
-  c.innerHTML = `<div class="tarjeta sobria" role="dialog" aria-label="Tu peso"><h2 class="gorda">Tu peso</h2>
-    <p>Solo sirve para afinar el mapa del cuerpo y se queda en este móvil.</p>
-    <div class="numeros"><div class="numero"><label for="peso">Kilos</label><input id="peso" inputmode="decimal" value="${estado.peso ? num(estado.peso) : ''}" autocomplete="off"></div></div>
-    <button type="button" class="principal" data-accion="guardar-peso">Guardar</button>
-    <button type="button" class="secundario" data-accion="cerrar">Cancelar</button></div>`;
-  c.hidden = false;
-  $('#peso').focus();
-}
 
 // ---------- Descanso ----------
 // Guarda la hora de fin, no una cuenta atrás: si iOS duerme la app, al volver sigue siendo correcta.
@@ -807,7 +798,7 @@ function pintarProgreso() {
     </div>
     <div class="grafica-caja" id="caja"></div>
     <h2 class="gorda seccion">Tu fuerza, músculo a músculo</h2>
-    ${pintarCuerpo(estado.peso || 60, !!estado.peso)}
+    ${pintarCuerpo(PESO_REFERENCIA)}
     <h2 class="gorda seccion">Tus últimas 26 semanas</h2>
     <div class="semanas" id="semanas"></div>
     <p class="pie">Cuanto más claro, más días entrenaste esa semana. Lo anterior a noviembre de 2026 tiene fechas aproximadas: el Excel solo decía "Semana N".</p>
@@ -1051,7 +1042,7 @@ document.addEventListener('click', (ev) => {
     if (arbol) decir(`Semana del ${fechaCorta(arbol.dataset.semana)}: ${arbol.dataset.n} ${arbol.dataset.n === '1' ? 'entreno' : 'entrenos'}`);
     const zona = ev.target.closest && ev.target.closest('[data-mapa]');
     if (zona) {
-      const d = fuerzaPorMusculo(estado.peso || 60, hoyIso()).find((x) => x.musculo === zona.dataset.mapa);
+      const d = fuerzaPorMusculo(PESO_REFERENCIA, hoyIso()).find((x) => x.musculo === zona.dataset.mapa);
       decir(d && d.mejor ? `${d.musculo}: superas al ${d.mejor.por} % de las mujeres que entrenan` : `${zona.dataset.mapa}: sin datos del último año`);
     }
     return;
@@ -1086,8 +1077,6 @@ document.addEventListener('click', (ev) => {
     case 'cambiar-otro': return cambiarEjercicio($('#otro').value);
     case 'ver-mas': guardarBorrador(); estado.verMas = !estado.verMas; return pintar();
     case 'ver-planetas': estado.verPlanetas = !estado.verPlanetas; return pintar();
-    case 'peso-corporal': return pedirPeso();
-    case 'guardar-peso': { const v = parseFloat(String($('#peso').value).replace(',', '.')); if (v >= 30 && v <= 200) { estado.peso = v; guardar('peso', v); } cerrarCapa(); return pintar(); }
     case 'ver-notas': estado.todasNotas = !estado.todasNotas; return pintarNotas();
     case 'terminar': return terminar();
     case 'cerrar': cerrarCapa(); return undefined;
