@@ -370,7 +370,7 @@ function iniciarVida(entrenos, quietos) {
 }
 
 // ---------- Tocar el bosque ----------
-function tocarBosque(ev, svg) {
+function tocarBosque(ev, svg, arbol) {
   const r = svg.getBoundingClientRect(), k = ANCHO / r.width;
   const x = (ev.clientX - r.left) * k, y = (ev.clientY - r.top) * k;
   if (!vida) return false;
@@ -381,7 +381,6 @@ function tocarBosque(ev, svg) {
     decir(lista.length ? elige(lista).split('|')[1] : FICHAS[a.tipo].nombre);
     return true;
   }
-  const arbol = ev.target.closest('[data-semana]');
   if (arbol) {
     sacudir(vida.arboles.find((t) => t.el === arbol) || { el: arbol, x, y, s: 1 });
     return false;

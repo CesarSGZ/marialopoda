@@ -1036,13 +1036,25 @@ function saludarBicho(el) {
   if (el.classList.contains('escenario')) reaccionOruga();
 }
 
+// El bosque se toca con eventos de puntero: en Safari un toque sobre un dibujo que se mueve no siempre acaba en clic.
+let toqueBosque = null;
+document.addEventListener('pointerdown', (ev) => {
+  toqueBosque = ev.target.closest && ev.target.closest('svg.bosque') ? { x: ev.clientX, y: ev.clientY, t: Date.now() } : null;
+});
+document.addEventListener('pointerup', (ev) => {
+  const inicio = toqueBosque, svgB = inicio && document.querySelector('svg.bosque');
+  toqueBosque = null;
+  // Si el dedo se ha movido, estaba desplazando la pantalla.
+  if (!svgB || Math.hypot(ev.clientX - inicio.x, ev.clientY - inicio.y) > 10 || Date.now() - inicio.t > 700) return;
+  const bajo = document.elementFromPoint(ev.clientX, ev.clientY);
+  const arbol = bajo && bajo.closest && bajo.closest('[data-semana]');
+  if (tocarBosque(ev, svgB, arbol)) return;
+  if (arbol) decir(`Semana del ${fechaCorta(arbol.dataset.semana)}: ${arbol.dataset.n} ${arbol.dataset.n === '1' ? 'entreno' : 'entrenos'}`);
+});
+
 document.addEventListener('click', (ev) => {
   const t = ev.target.closest('button');
   if (!t) {
-    const svgB = ev.target.closest && ev.target.closest('svg.bosque');
-    if (svgB && tocarBosque(ev, svgB)) return;
-    const arbol = ev.target.closest && ev.target.closest('[data-semana]');
-    if (arbol) decir(`Semana del ${fechaCorta(arbol.dataset.semana)}: ${arbol.dataset.n} ${arbol.dataset.n === '1' ? 'entreno' : 'entrenos'}`);
     const zona = ev.target.closest && ev.target.closest('[data-mapa]');
     if (zona) {
       const d = fuerzaPorMusculo(PESO_REFERENCIA, hoyIso()).find((x) => x.musculo === zona.dataset.mapa);
