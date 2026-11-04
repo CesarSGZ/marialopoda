@@ -594,7 +594,6 @@ function terminar() {
     <p class="cifra">${miles(total)} kg</p>
     <p>Eso es lo que has movido hoy: ${equivale}, en ${hoy.length} ${hoy.length === 1 ? 'serie' : 'series'} y ${ejercicios} ${ejercicios === 1 ? 'ejercicio' : 'ejercicios'}.</p>
     ${pintarJardin('jardin final')}
-    <p>🚀 Hoy tu flota ha avanzado ${String(+(total / 1000).toFixed(1)).replace('.', ',')} toneladas por la galaxia.</p>
     <p>🌳 Tu árbol de esta semana ya lleva ${semana} ${semana === 1 ? 'entreno' : 'entrenos'}.</p>
     ${ganados ? `<p>🥊 Has ido por delante de tu yo del pasado en ${ganados} ${ganados === 1 ? 'ejercicio' : 'ejercicios'}.</p>` : ''}
     <p>${semana >= objetivo ? esc(azar(FRASES.semana)) : `Llevas ${semana} de ${objetivo} entrenos esta semana.`}</p>
@@ -1007,7 +1006,7 @@ function pintar() {
   document.querySelectorAll('#menu button').forEach((b) => {
     if (b.dataset.ver === estado.vista) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
   });
-  pararBosque();
+  pararBosque(); pararVida(); pararOruga();
   svgBicho = vestirBicho(svgBase, nivelDe(datosMundo(estado.filas).entrenos).nivel, ES_CUMPLE(hoyIso()));
   if (estado.vista === 'hoy') pintarHoy();
   else if (estado.vista === 'mundo') pintarMundo(objetivoSemanal());
@@ -1032,13 +1031,16 @@ function saludarBicho(el) {
   if (secreto) { lluvia(['🌻', '🌸', '🌼', '🌷', '💗'], 45); pasearSalchicha(); }
   const texto = secreto ? azar(FRASES.secreto) : Math.random() < 0.25 ? azar(FRASES.cesar) : azar(FRASES.bicho);
   const s = document.querySelector('.saludo') || document.querySelector('.datos-vida');
-  if (s) s.textContent = texto;
+  if (s) s.textContent = texto; else decir(texto);
   if (document.querySelector('.saludo')) estado.saludo = texto;
+  if (el.classList.contains('escenario')) reaccionOruga();
 }
 
 document.addEventListener('click', (ev) => {
   const t = ev.target.closest('button');
   if (!t) {
+    const svgB = ev.target.closest && ev.target.closest('svg.bosque');
+    if (svgB && tocarBosque(ev, svgB)) return;
     const arbol = ev.target.closest && ev.target.closest('[data-semana]');
     if (arbol) decir(`Semana del ${fechaCorta(arbol.dataset.semana)}: ${arbol.dataset.n} ${arbol.dataset.n === '1' ? 'entreno' : 'entrenos'}`);
     const zona = ev.target.closest && ev.target.closest('[data-mapa]');

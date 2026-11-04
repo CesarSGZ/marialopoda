@@ -265,86 +265,226 @@ textarea.nota { margin-top: 4px; resize: none; }
 .bicho svg { overflow: visible; }
 .barra-nivel { height: 10px; margin-top: 12px; border-radius: 5px; background: var(--berenjena); overflow: hidden; }
 .barra-nivel i { display: block; height: 100%; border-radius: 5px; background: var(--chicle); transition: width .5s; }
-.galaxia { background: radial-gradient(1px 1px at 12% 22%, #fff, transparent), radial-gradient(1px 1px at 76% 14%, #fff, transparent), radial-gradient(1.5px 1.5px at 42% 58%, #fff, transparent), radial-gradient(1px 1px at 88% 72%, #fff, transparent), #1A0E36; }
-.galaxia .principal { display: block; width: 100%; min-height: 56px; margin: 8px 0; border-radius: 18px; background: var(--amarillo); color: var(--berenjena); font: 700 19px 'Figtree', sans-serif; animation: late 2.4s ease-in-out infinite; }
-@keyframes late { 50% { transform: scale(1.025); } }
-.galaxia .mundo-dato b { color: var(--tinta); }
-.sector { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 4px; }
-.sector b { text-align: center; }
-.sector button { flex: none; width: 44px; height: 44px; border-radius: 50%; background: var(--ciruela-2); color: var(--tinta); font-size: 22px; }
-.sector button:disabled { opacity: .3; }
-.mapa { display: block; width: 100%; height: auto; margin: 4px 0 8px; overflow: visible; }
-.mapa .planeta { cursor: pointer; }
-.mapa .titila { animation: titila 3.4s ease-in-out infinite; }
-@keyframes titila { 50% { opacity: .25; } }
-.mapa .pulso { animation: pulso 1.7s ease-out infinite; transform-box: fill-box; transform-origin: center; }
-@keyframes pulso { from { transform: scale(.85); opacity: 1; } to { transform: scale(1.3); opacity: 0; } }
-.aliados-titulo { margin: 12px 0 4px; font-size: 16px; }
-.aliados { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
-.aliados button { width: 44px; height: 44px; border-radius: 50%; background: rgba(255, 255, 255, .09); font-size: 22px; }
-.aliados span { padding: 0 8px; font-size: 14px; color: var(--tinta-2); }
-.toca { cursor: pointer; }
-.escena { display: block; width: 100%; height: auto; margin: 6px 0 10px; border-radius: 14px; background: #0D0620; overflow: hidden; }
-.escena .fondo-lento { animation: fondo 60s linear infinite; }
-.escena .fondo-rapido { animation: fondo 18s linear infinite; }
-@keyframes fondo { to { transform: translateX(-360px); } }
-.escena .vaiven { animation: vaiven 3s ease-in-out infinite; }
-.escena .vaiven.lento { animation-duration: 4.6s; }
-@keyframes vaiven { 50% { transform: translateY(-3px); } }
-.escena .llama { animation: llama .28s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: top; }
-@keyframes llama { to { transform: scaleY(.6); } }
-.escena .pirueta { animation: pirueta .8s ease-in-out; }
-@keyframes pirueta { to { transform: rotate(360deg) scale(1); } 50% { transform: rotate(180deg) scale(1.35); } }
-.sable { display: block; width: 100%; margin: 12px 0 2px; padding: 0; background: none; }
-.sable svg { display: block; width: 100%; height: auto; }
-#hoja { transform-box: fill-box; transform-origin: left; animation: enciende .55s cubic-bezier(.2, .9, .3, 1); }
-#hoja.enciende { animation: enciende2 .55s cubic-bezier(.2, .9, .3, 1); }
-@keyframes enciende { from { transform: scaleX(0); } }
-@keyframes enciende2 { from { transform: scaleX(0); } }
-#hiper { position: fixed; z-index: 20; inset: 0; background: #0A041C; color: var(--tinta); overflow: hidden; }
-#hiper canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
-#hiper.destello::after { content: ''; position: absolute; inset: 0; background: #fff; pointer-events: none; animation: destello .6s ease-out forwards; }
-@keyframes destello { from { opacity: .95; } to { opacity: 0; } }
-.h-salir { position: absolute; z-index: 2; top: calc(env(safe-area-inset-top, 0px) + 8px); right: 10px; width: 44px; height: 44px; border-radius: 50%; background: rgba(255, 255, 255, .14); color: #fff; font-size: 17px; }
-.h-centro { position: absolute; z-index: 1; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px; text-align: center; overflow: auto; }
-.h-rumbo { font: 700 22px 'Figtree', sans-serif; text-shadow: 0 2px 10px #000; }
-.h-llegada { width: min(100%, 400px); padding: 14px 16px 16px; border-radius: 24px; background: rgba(10, 4, 28, .78); animation: sube .5s ease; }
-.h-llegada svg { max-width: 100%; height: auto; }
-.h-llegada p { margin: 6px 0; line-height: 1.4; }
-.h-sector { font-size: 14px; color: var(--tinta-2); }
-.h-llegada .principal { display: block; width: 100%; min-height: 54px; margin-top: 14px; border-radius: 18px; background: var(--amarillo); color: var(--berenjena); font: 700 18px 'Figtree', sans-serif; }
-.h-viaje { display: flex; flex-direction: column; align-items: center; gap: 2px; text-shadow: 0 2px 8px #000; }
-.h-viaje b { font-size: 22px; }
-.h-viaje em { margin-top: 8px; padding: 6px 12px; border-radius: 14px; background: rgba(0, 0, 0, .5); font-style: normal; font-weight: 700; color: var(--amarillo); }
-.bosque .cae { animation: cae .7s linear infinite; }
-@keyframes cae { to { stroke-dashoffset: -12; } }
-@media (prefers-reduced-motion: reduce) { .mapa .titila, .mapa .pulso, .escena *, #hoja, .bosque .cae, .galaxia .principal { animation: none; } }
 .marco-bosque { margin: 10px -4px 8px; border-radius: 16px; overflow: hidden; }
-.bosque { display: block; width: 100%; height: auto; }
+.bosque { display: block; width: 100%; height: auto; cursor: pointer; } /* En iOS, sin cursor no llegan los toques */
 .tiempo { display: flex; align-items: center; gap: 10px; }
 .tiempo .play { flex: none; width: 44px; height: 44px; border-radius: 50%; background: var(--chicle); color: var(--berenjena); font-size: 16px; }
 .tiempo input { flex: 1; min-width: 0; height: 44px; accent-color: var(--chicle); }
 .tiempo span { flex: none; min-width: 62px; text-align: right; font-size: 13px; color: var(--tinta-2); }
 .habitantes { font-size: 18px; line-height: 1.5; color: var(--tinta); overflow-wrap: anywhere; }
 .bosque text { pointer-events: none; }
-.bosque .vive { animation: vive 3.4s ease-in-out infinite; }
-@keyframes vive { 50% { transform: translateY(-1.5px); } }
+.bosque .velo, .bosque .capa-fx { pointer-events: none; }
 .bosque .nube { animation: nube 70s linear infinite alternate; }
 .bosque .nube.lenta { animation-duration: 110s; animation-direction: alternate-reverse; }
 @keyframes nube { to { transform: translateX(120px); } }
+.titila-b, .destello-o { animation: titilab 3s ease-in-out infinite; }
+@keyframes titilab { 50% { opacity: .2; } }
+.bosque .aurora { animation: aurora 9s ease-in-out infinite alternate; }
+@keyframes aurora { to { opacity: .1; transform: translateX(14px); } }
+.bosque .caida { animation: cascada .7s linear infinite; }
+@keyframes cascada { to { stroke-dashoffset: -12; } }
+.bosque .espuma { transform-box: fill-box; transform-origin: center; animation: espuma 1s ease-in-out infinite alternate; }
+@keyframes espuma { to { transform: scale(1.12, .86); } }
+.bosque .fluye { animation: fluye 2.4s linear infinite; }
+.bosque .fluye.lento { animation-duration: 3.6s; }
+@keyframes fluye { to { stroke-dashoffset: -40; } }
+.bosque .humo circle { fill: #fff; opacity: 0; transform-box: fill-box; transform-origin: center; animation: humo 4.2s ease-out infinite; }
+.bosque .humo circle:nth-child(2) { animation-delay: -1.4s; }
+.bosque .humo circle:nth-child(3) { animation-delay: -2.8s; }
+@keyframes humo { 0% { transform: translate(0, 0) scale(.5); opacity: 0; } 15% { opacity: .75; } 100% { transform: translate(12px, -44px) scale(2.2); opacity: 0; } }
+.bosque .puerta { transition: transform .45s ease; }
+.bosque .puerta.abre { transform: scaleX(.25); }
+.bosque .chorro { animation: cascada .8s linear infinite; }
+.bosque .noria { animation: noria 16s linear infinite; }
+@keyframes noria { to { transform: rotate(360deg); } }
+.bosque .sube-baja { animation: subebaja 1.8s ease-in-out infinite alternate; }
+.bosque .sube-baja.otra { animation-direction: alternate-reverse; }
+@keyframes subebaja { to { transform: translateY(-7px); } }
 .bosque .pajaro { animation: pajaro 26s linear infinite; }
 @keyframes pajaro { from { translate: -30px 0; } to { translate: 390px -14px; } }
-.bosque .vuela { animation: vuela 7s ease-in-out infinite; }
-@keyframes vuela { 25% { transform: translate(14px, -10px); } 50% { transform: translate(26px, 2px); } 75% { transform: translate(10px, 9px); } }
+.bosque .aleteo { transform-box: fill-box; transform-origin: center; animation: aleteo .45s ease-in-out infinite alternate; }
+@keyframes aleteo { to { transform: scaleY(-.7); } }
+.bosque .revolotea { animation: revolotea 7s ease-in-out infinite; }
+@keyframes revolotea { 25% { transform: translate(14px, -10px); } 50% { transform: translate(26px, 2px); } 75% { transform: translate(10px, 9px); } }
+.bosque .ala-m { animation: alam .22s ease-in-out infinite alternate; }
+@keyframes alam { to { transform: scaleX(.25); } }
 .bosque .zumba { animation: zumba 2.6s ease-in-out infinite; }
 @keyframes zumba { 25% { transform: translate(7px, -5px); } 50% { transform: translate(-3px, -9px); } 75% { transform: translate(-8px, -2px); } }
 .bosque .luz { animation: luz 2.8s ease-in-out infinite; }
 @keyframes luz { 50% { opacity: .15; transform: translateY(-5px); } }
 .bosque .petalo { animation: petalo 11s linear infinite; }
 @keyframes petalo { to { transform: translate(40px, 350px); } }
-.bosque [data-semana] { cursor: pointer; }
-.bosque .crece { transform-box: fill-box; transform-origin: 50% 100%; animation: crece 3s ease-in-out infinite; }
+.bosque [data-semana] { cursor: pointer; transform-box: fill-box; transform-origin: 50% 100%; }
+.bosque .crece { animation: crece 3s ease-in-out infinite; }
 @keyframes crece { 50% { transform: rotate(2deg) scale(1.05); } }
+.bosque .mece { animation: mece 5s ease-in-out infinite; }
+@keyframes mece { 25% { transform: rotate(1.1deg); } 75% { transform: rotate(-.9deg); } }
+.bosque [data-semana].sacude { animation: sacude .6s ease-in-out; }
+@keyframes sacude { 20% { transform: rotate(3deg); } 45% { transform: rotate(-3deg); } 70% { transform: rotate(2deg); } }
+.bosque .brota-b { animation: brota .5s cubic-bezier(.2, 1.8, .4, 1); }
+/* Efectos sueltos: la x avanza recta y la y sube y cae, y juntas dibujan el arco. */
+.bosque .fx-x { animation: fxx linear forwards; }
+@keyframes fxx { to { transform: translateX(var(--dx)); } }
+.bosque .fx-y { animation: fxy linear forwards; }
+@keyframes fxy { 45% { transform: translateY(var(--alto)); animation-timing-function: ease-in; } 100% { transform: translateY(var(--caida)); opacity: .7; } }
+.fx-sube { animation: fxsube ease-out forwards; }
+@keyframes fxsube { 0% { transform: translateY(0) scale(.6); opacity: 0; } 18% { transform: translateY(-5px) scale(1.1); opacity: 1; } 75% { opacity: 1; } 100% { transform: translateY(-24px) scale(1); opacity: 0; } }
+.bosque .fx-onda { transform-box: fill-box; transform-origin: center; animation: fxonda 1.1s ease-out forwards; }
+@keyframes fxonda { from { transform: scale(.4); opacity: .95; } to { transform: scale(2.2); opacity: 0; } }
+.bosque .fx-pez { animation: fxpez .9s ease-in-out forwards; }
+@keyframes fxpez { 0% { transform: translateY(2px) rotate(-40deg); } 50% { transform: translateY(-20px) rotate(10deg); } 100% { transform: translateY(2px) rotate(60deg); } }
+
+/* Los animales: el motor pone la clase y aquí se mueven las patas, la cabeza y la cola. */
+.b-animal { --baja: 42deg; --seg: .34s; }
+.b-elefante { --seg: .62s; --baja: 22deg; } .b-oso { --seg: .52s; --baja: 30deg; } .b-ciervo { --seg: .42s; --baja: 66deg; } .b-erizo { --seg: .2s; --baja: 18deg; }
+.b-tortuga { --seg: .7s; --baja: 18deg; } .b-oveja { --seg: .4s; --baja: 50deg; } .b-flamenco { --baja: 100deg; --seg: .5s; } .b-cisne { --baja: 96deg; } .b-perro { --seg: .17s; --baja: 34deg; } .b-ardilla { --seg: .13s; } .b-pavo { --seg: .36s; }
+.b-animal .bellota, .b-animal .barra { opacity: 0; }
+.b-animal .abanico { transform: scale(.32) rotate(-48deg); transition: transform .5s cubic-bezier(.2, 1.3, .4, 1); }
+.b-animal .oj { animation: parpadea 4.6s infinite; }
+.b-perro .cola, .b-zorro .cola { animation: colita 1.4s ease-in-out infinite alternate; }
+@keyframes colita { to { transform: rotate(10deg); } }
+.b-conejo .ore, .b-elefante .ore { animation: oreja 3.4s ease-in-out infinite; }
+@keyframes oreja { 0%, 80%, 100% { transform: rotate(0); } 88% { transform: rotate(-12deg); } }
+.anda .pa, .trota .pa, .brinca .pa { animation: paso var(--seg) ease-in-out infinite alternate; }
+.anda .pb, .trota .pb, .brinca .pb { animation: paso var(--seg) ease-in-out infinite alternate-reverse; }
+.trota .pa, .trota .pb { animation-duration: calc(var(--seg) * .6); }
+@keyframes paso { from { transform: rotate(-26deg); } to { transform: rotate(26deg); } }
+.anda .cuerpo, .trota .cuerpo { animation: bote calc(var(--seg) * 2) ease-in-out infinite; }
+@keyframes bote { 25%, 75% { transform: translateY(-.8px); } 50% { transform: translateY(.4px) rotate(.7deg); } }
+.anda .cab { animation: asiente calc(var(--seg) * 2) ease-in-out infinite; }
+@keyframes asiente { 50% { transform: rotate(4deg); } }
+.trota .cola { animation: colita .16s ease-in-out infinite alternate; }
+.b-oruga .se { animation: oleada 2s ease-in-out infinite; }
+.b-oruga.anda .se, .b-oruga.trota .se { animation: oleada .56s ease-in-out infinite; }
+@keyframes oleada { 50% { transform: translateY(-2.6px); } }
+.b-tortuga.anda .pata { animation: paso .8s ease-in-out infinite alternate; }
+.b-tortuga.anda .pata.otra { animation-direction: alternate-reverse; }
+.huele .cab { animation: huele .45s ease-in-out infinite alternate; }
+@keyframes huele { from { transform: rotate(var(--baja)); } to { transform: rotate(calc(var(--baja) - 10deg)); } }
+.b-animal.come .cab, .pesca .cab { animation: pica .34s ease-in-out infinite alternate; }
+@keyframes pica { from { transform: rotate(var(--baja)); } to { transform: rotate(calc(var(--baja) + 9deg)); } }
+.b-ardilla.come .cab, .b-oruga.come .cab { animation: mastica .2s ease-in-out infinite alternate; }
+@keyframes mastica { to { transform: translateY(1px) rotate(8deg); } }
+.b-ardilla.come .bellota { opacity: 1; }
+.bebe .cab { animation: bebe 1.2s ease-in-out infinite alternate; }
+@keyframes bebe { from { transform: rotate(var(--baja)); } to { transform: rotate(calc(var(--baja) + 14deg)); } }
+.b-elefante.bebe .trompa { transform: rotate(38deg); }
+.b-elefante.rocia .trompa, .b-elefante.trompeta .trompa { animation: alza .5s ease-in-out infinite alternate; }
+@keyframes alza { from { transform: rotate(-96deg); } to { transform: rotate(-112deg); } }
+.b-elefante.rocia .cab, .b-elefante.trompeta .cab { transform: rotate(-8deg); }
+.b-elefante.orejea .ore { animation: orejea .28s ease-in-out infinite alternate; }
+@keyframes orejea { from { transform: rotate(-16deg) scaleX(1.1); } to { transform: rotate(14deg) scaleX(.86); } }
+.rasca .cuerpo { animation: rasca .38s ease-in-out infinite alternate; }
+@keyframes rasca { from { transform: rotate(-7deg) translateX(1px); } to { transform: rotate(-11deg) translateX(-1.4px); } }
+.sienta .cuerpo { transform: rotate(-16deg) translateY(1.6px); }
+.sienta .cola { animation: colita .6s ease-in-out infinite alternate; }
+.duerme .cuerpo { transform: scale(1.06, .78); animation: duerme 2.6s ease-in-out infinite; }
+@keyframes duerme { 0%, 100% { transform: scale(1.06, .78); } 50% { transform: scale(1.09, .74); } }
+.duerme .cab { transform: rotate(20deg); }
+.b-animal.duerme .oj { animation: none; transform: scaleY(.1); }
+.cava .cab { transform: rotate(38deg); }
+.cava .pa, .cava .pb { animation: paso .12s linear infinite alternate; }
+.cava .cuerpo { transform: rotate(14deg); }
+.cava .cola { animation: colita .12s linear infinite alternate; }
+.ladra .cuerpo { animation: ladra .36s ease-in-out infinite; }
+@keyframes ladra { 40% { transform: translateY(-2.2px) rotate(-5deg); } }
+.ladra .cab { animation: asiente .36s ease-in-out infinite; }
+.contento .cuerpo { animation: contento .36s ease-in-out infinite; }
+@keyframes contento { 50% { transform: translateY(-2.6px); } }
+.b-animal.contento .cola { animation: colita .1s linear infinite alternate; }
+.alerta .cab, .b-animal.mira .cab { animation: mira 1.6s ease-in-out infinite alternate; }
+@keyframes mira { from { transform: rotate(-8deg); } to { transform: rotate(5deg); } }
+.b-animal.alerta .ore { animation: oreja 1s ease-in-out infinite; }
+.brinca .cuerpo { transform: rotate(-9deg); }
+.trepa .cuerpo { transform: rotate(-78deg); animation: trepa .16s linear infinite alternate; }
+@keyframes trepa { from { transform: rotate(-78deg); } to { transform: rotate(-82deg) translateX(.8px); } }
+.baja .cuerpo { transform: rotate(78deg); }
+.trepa .pa, .trepa .pb, .baja .pa, .baja .pb { animation: paso .12s linear infinite alternate; }
+.b-erizo .cab, .b-erizo .pa, .b-erizo .pb, .b-tortuga .cab, .b-tortuga .pata { transition: transform .25s; }
+.bola .cab, .bola .pa, .bola .pb, .escondida .cab, .escondida .pata { transform: scale(0); }
+.bola .lomo { transform: translateY(2.5px) scale(.9); }
+.b-animal.luce .abanico { transform: scale(1) rotate(0); animation: tiembla .18s linear infinite alternate; }
+@keyframes tiembla { from { transform: scale(1) rotate(0); } to { transform: scale(1) rotate(1.3deg); } }
+.acecha .cuerpo { transform: rotate(-4deg) scale(1, .84); animation: acecha .3s ease-in-out infinite alternate; }
+@keyframes acecha { from { transform: rotate(-4deg) scale(1, .84); } to { transform: rotate(-4deg) scale(1, .78); } }
+.nada .cuerpo { animation: flotab 2.2s ease-in-out infinite; }
+@keyframes flotab { 50% { transform: translateY(.8px) rotate(1deg); } }
+.b-cisne .sombra-b, .b-flamenco .sombra-b { opacity: .12; }
+.b-flamenco.reposo .pb { transform: rotate(68deg) scaleY(.5); }
+.b-flamenco.nada .pa { animation: paso var(--seg) ease-in-out infinite alternate; }
+.b-flamenco.nada .pb { animation: paso var(--seg) ease-in-out infinite alternate-reverse; }
+.volando .ala { animation: aleta .12s linear infinite alternate; }
+@keyframes aleta { from { transform: rotate(-52deg); } to { transform: rotate(28deg); } }
+.volando .ala.otra { animation-name: aletab; }
+@keyframes aletab { from { transform: rotate(52deg); } to { transform: rotate(-28deg); } }
+.volando .pa, .volando .pb { transform: rotate(40deg) scaleY(.5); }
+.b-mariquita.volando .ala { animation: aletam .07s linear infinite alternate; }
+@keyframes aletam { to { transform: rotate(-22deg) translateY(-1px); } }
+.otea .cab { animation: otea 3.6s steps(1) infinite; }
+@keyframes otea { 0%, 100% { transform: scaleX(1); } 35% { transform: scaleX(-1); } 70% { transform: rotate(14deg); } }
+.canta .cab { animation: mira .36s ease-in-out infinite alternate; }
+.bala .cab { transform: rotate(-22deg); }
+.b-oruga.pesas .barra { opacity: 1; animation: pesas 1.2s ease-in-out infinite; }
+@keyframes pesas { 0%, 100% { transform: translateY(13px); } 50% { transform: translateY(-2px); } }
+.b-oruga.pesas .cuerpo { animation: pesasc 1.2s ease-in-out infinite; }
+@keyframes pesasc { 50% { transform: scaleY(1.05); } }
+
+/* ---- La oruga en su escenario ---- */
+.bicho.escenario { display: block; width: calc(100% + 8px); height: auto; margin: 0 -4px 10px; padding: 0; background: none; }
+.bicho.escenario svg { animation: none; width: 100%; height: auto; border-radius: 16px; overflow: hidden; }
+.bicho.escenario.salta { animation: none; }
+.oruga-titulo { margin-top: 2px; }
+.seg { animation: oru-ola 2.2s ease-in-out infinite; }
+@keyframes oru-ola { 50% { transform: translateY(-3px); } }
+.oru-cuerpo { transform-origin: 90px 170px; animation: oru-respira 3.2s ease-in-out infinite; }
+@keyframes oru-respira { 50% { transform: translateY(-1.5px); } }
+.pata-o { animation: oru-pata 1.6s ease-in-out infinite alternate; }
+@keyframes oru-pata { from { transform: rotate(-5deg); } to { transform: rotate(5deg); } }
+.oru-brazos, .oru-cabeza { transform-origin: 145px 100px; }
+.oru-cabeza { animation: oru-mira 4.4s ease-in-out infinite; }
+@keyframes oru-mira { 25% { transform: rotate(-3deg); } 70% { transform: rotate(4deg); } }
+.oru-lazo { transform-box: fill-box; transform-origin: center; animation: oru-lazo 2.6s ease-in-out infinite; }
+@keyframes oru-lazo { 50% { transform: scale(1.1, .9) rotate(-3deg); } }
+.ala-oruga { transform-origin: 112px 100px; animation: oru-ala .8s ease-in-out infinite alternate; }
+@keyframes oru-ala { to { transform: scaleX(.78) skewY(4deg); } }
+.flor-o { animation: mece-o 3.6s ease-in-out infinite; }
+@keyframes mece-o { 25% { transform: rotate(4deg); } 75% { transform: rotate(-4deg); } }
+.hoja-o { transform-box: fill-box; transform-origin: 0 100%; animation: mece-o 3s ease-in-out infinite; transition: opacity .4s; }
+.hoja-o.mordida { opacity: .55; animation: mastica .22s ease-in-out infinite alternate; }
+.andar .seg { animation: oru-ola .56s ease-in-out infinite; }
+.andar .pata-o { animation: oru-pata-a .28s ease-in-out infinite alternate; }
+@keyframes oru-pata-a { from { transform: rotate(-20deg); } to { transform: rotate(20deg); } }
+.andar .oru-cuerpo { animation: oru-anda .56s ease-in-out infinite; }
+@keyframes oru-anda { 50% { transform: translateY(-3px) rotate(.8deg); } }
+.press .oru-brazos { animation: oru-press 1.1s ease-in-out infinite; }
+@keyframes oru-press { 0%, 100% { transform: translateY(30px) scaleY(.7); } 45%, 60% { transform: translateY(-12px); } }
+.press .oru-cabeza { animation: oru-esfuerzo 1.1s ease-in-out infinite; }
+@keyframes oru-esfuerzo { 45%, 60% { transform: translateY(-3px) rotate(-2deg); } }
+.press .seg { animation: oru-ola 1.1s ease-in-out infinite; }
+.flexo .oru-cuerpo { animation: oru-flexo .5s ease-in-out infinite alternate; }
+@keyframes oru-flexo { from { transform: rotate(-3deg) scale(1); } to { transform: rotate(3deg) scale(1.05); } }
+.flexo .oru-brazos { animation: oru-flexob .5s ease-in-out infinite alternate; }
+@keyframes oru-flexob { to { transform: translateY(-8px) rotate(5deg); } }
+.escena-oruga.come .oru-cabeza { animation: oru-come .24s ease-in-out infinite alternate; }
+@keyframes oru-come { to { transform: translateX(5px) rotate(5deg) scale(1.04, .96); } }
+.baila .oru-cuerpo { animation: oru-baila .6s ease-in-out infinite alternate; }
+@keyframes oru-baila { from { transform: rotate(-7deg) translateX(-5px); } to { transform: rotate(7deg) translateX(5px); } }
+.baila .oru-brazos { animation: oru-flexob .3s ease-in-out infinite alternate; }
+.siesta .oru-cuerpo { animation: duerme-o 3s ease-in-out infinite; }
+@keyframes duerme-o { 0%, 100% { transform: scale(1.02, .9); } 50% { transform: scale(1.05, .86); } }
+.bicho .siesta .ojo { animation: none; transform: scaleY(.1); }
+.siesta .oru-brazos { transform: translateY(46px); }
+.brinco .oru-cuerpo { animation: oru-brinco .75s cubic-bezier(.3, 1.4, .5, 1); }
+@keyframes oru-brinco { 30% { transform: translateY(-34px) scale(.96, 1.06); } 60% { transform: translateY(0) scale(1.08, .9); } 80% { transform: translateY(-7px); } }
+.giro .oru-cuerpo { transform-origin: 110px 110px; animation: oru-giro .9s ease-in-out; }
+@keyframes oru-giro { to { transform: rotate(360deg); } }
+.senda { position: relative; height: 28px; margin-top: 12px; border-radius: 14px; background: var(--berenjena); }
+.senda-llena { position: absolute; left: 0; top: 0; bottom: 0; width: var(--avance); min-width: 14px; border-radius: 14px; background: linear-gradient(90deg, var(--chicle), #FFC2DA); animation: senda-llena 1.2s cubic-bezier(.2, .8, .3, 1); }
+@keyframes senda-llena { from { width: 0; } }
+.senda-bicho { position: absolute; top: 50%; left: min(var(--avance), 86%); width: 34px; line-height: 0; transform: translate(-40%, -58%); animation: senda-bicho 1.2s cubic-bezier(.2, .8, .3, 1); }
+@keyframes senda-bicho { from { left: 0; } }
+.senda span { position: absolute; right: 6px; top: 50%; margin-top: -11px; font-size: 17px; line-height: 22px; animation: oru-lazo 1.8s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .bosque *, .escena-oruga *, .senda * { animation: none !important; } }
 .duelo { margin: 2px 0 8px; padding: 8px 10px; border-radius: 12px; background: var(--berenjena); font-size: 14px; line-height: 1.3; color: var(--tinta-2); }
 .duelo.gana { color: var(--tinta); font-weight: 700; }
 .cuerpo svg { display: block; width: 100%; max-width: 360px; height: auto; margin: 0 auto; }
