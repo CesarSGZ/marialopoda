@@ -46,7 +46,7 @@ const num = (v) => String(Math.round(v * 100) / 100).replace('.', ',');
 const miles = (v) => Math.round(v).toLocaleString('de-DE'); // es-ES no separa los miles de 4 cifras
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const $ = (s) => document.querySelector(s);
-const SIN_LASTRE = { Dominadas: true };
+const SIN_LASTRE = { Dominadas: true, 'Fondos de tríceps': true };
 const fechaCorta = (iso) => { const [a, m, d] = iso.split('-'); return `${+d} ${['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'][m - 1]} ${a.slice(2)}`; };
 
 // ---------- Cálculos ----------
@@ -594,7 +594,7 @@ function terminar() {
     <p class="cifra">${miles(total)} kg</p>
     <p>Eso es lo que has movido hoy: ${equivale}, en ${hoy.length} ${hoy.length === 1 ? 'serie' : 'series'} y ${ejercicios} ${ejercicios === 1 ? 'ejercicio' : 'ejercicios'}.</p>
     ${pintarJardin('jardin final')}
-    <p>🚀 Tu nave ha ganado combustible para 3 vuelos más.</p>
+    <p>🚀 Hoy tu flota ha avanzado ${String(+(total / 1000).toFixed(1)).replace('.', ',')} toneladas por la galaxia.</p>
     <p>🌳 Tu árbol de esta semana ya lleva ${semana} ${semana === 1 ? 'entreno' : 'entrenos'}.</p>
     ${ganados ? `<p>🥊 Has ido por delante de tu yo del pasado en ${ganados} ${ganados === 1 ? 'ejercicio' : 'ejercicios'}.</p>` : ''}
     <p>${semana >= objetivo ? esc(azar(FRASES.semana)) : `Llevas ${semana} de ${objetivo} entrenos esta semana.`}</p>

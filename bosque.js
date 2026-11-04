@@ -128,7 +128,7 @@ function escenaBosque(semanas, hasta, esActual, objetivo) {
     ${tiene(400) ? `<g fill="none" stroke-width="3" opacity=".55">${['#FF6B6B', '#FFC531', '#6FE08A', '#6BB7FF', '#C69CFF'].map((c, i) => `<path d="M${50 + i * 4} 106 A${100 - i * 4} ${84 - i * 4} 0 0 1 ${250 - i * 4} 106" stroke="${c}"/>`).join('')}</g>` : ''}
     ${tiene(200) ? '<path d="M0 108 L46 58 L84 92 L132 42 L186 96 L232 60 L280 94 L322 52 L360 92 V110 H0 Z" fill="#6D5A9C"/><path d="M132 42 L118 57 L132 52 L146 58 Z M46 58 L36 69 L47 65 L57 68 Z M322 52 L311 64 L323 60 L334 65 Z" fill="#F2EDF7"/>' : ''}
     <path d="M0 98 Q60 86 130 98 T260 96 T360 94 V110 H0 Z" fill="#7BB779"/>
-    ${tiene(600) ? '<path d="M180 52 Q176 78 182 104 L190 104 Q184 78 188 52 Z" fill="#DDF5FB"/>' : ''}
+    ${tiene(600) ? '<path d="M150 108 L164 70 Q168 60 178 60 L194 60 Q204 60 208 70 L224 108 Z" fill="#5A4A86"/><path d="M164 70 Q168 60 178 60 L194 60 Q204 60 208 70 Q186 76 164 70 Z" fill="#7BB779"/><path d="M180 66 L192 66 L190 108 L182 108 Z" fill="#DDF5FB"/><path class="cae" d="M184 66V106M188 66V106" stroke="#fff" stroke-width="1.4" stroke-dasharray="5 7" fill="none"/><ellipse cx="186" cy="107" rx="10" ry="3.2" fill="#fff" opacity=".85"/>' : ''}
     <rect y="${HORIZONTE}" width="${ANCHO}" height="${ALTO - HORIZONTE}" fill="url(#b-suelo)"/>${rio}${floresDe(tiene(25) ? Math.min(520, entrenos / 1.6) : 0)}
     ${dibujo}${habitantes}
     ${tiene(150) ? repetir(Math.min(7, (entrenos - 150) / 120 + 1), (i) => `<path class="pajaro" style="animation-delay:-${i * 3.7}s" transform="translate(0 ${16 + (i * 13) % 58})" d="M0 0 q5 -5 9 0 q4 -5 9 0" stroke="#2B1033" stroke-width="1.6" fill="none"/>`) : ''}

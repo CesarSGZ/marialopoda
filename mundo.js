@@ -223,8 +223,9 @@ function comprobarLogros() {
     mostrarCarta(cartaLogro('Tu mundo ha crecido', '🌳🚀🐝', azar(FRASES.novedades)));
   } else {
     if (n > visto.nivel) mostrarCarta(cartaLogro(`¡Nivel ${n}!`, tituloNivel(n), `${azar(FRASES.nivel)}${ACCESORIOS.some((a) => a.n === n) ? ` Nuevo: ${ACCESORIOS.find((a) => a.n === n).nombre.toLowerCase()}.` : ''}`));
-    if (visto.indice !== undefined && v.indice > visto.indice) { const p = planetaDe(v.indice); mostrarCarta(cartaLogro('¡Nuevo planeta!', p.nombre, `${p.frase} Ya puedes conquistarlo en Tu mundo.`)); }
-    if (visto.rango !== undefined && rango.i > visto.rango) mostrarCarta(cartaLogro('¡Nave nueva!', rango.nombre, `Ahora con ${rango.disparos} cañones. Son los de tus toneladas de verdad.`));
+    if (visto.indice !== undefined && v.indice > visto.indice) { const p = planetaDe(v.indice); mostrarCarta(cartaLogro('¡Nuevo planeta!', p.nombre, `${p.frase} Salta hasta allí desde Tu mundo.`)); }
+    if (visto.rango !== undefined && rango.i > visto.rango) mostrarCarta(cartaLogro('¡Nuevo rango Jedi!', rango.nombre, `Tu nueva nave: ${rango.nave}. Solo se consigue a base de toneladas.`));
+    if (visto.aliados !== undefined && cuantosAliados(d.toneladas) > visto.aliados) { const a = aliadoDe(cuantosAliados(d.toneladas) - 1); mostrarCarta(cartaLogro('Se une a tu flota', a.emoji, `${a.nombre}. ${a.frase}`)); }
     novedadesBosque(visto.entrenos, d.entrenos).forEach((x) => mostrarCarta(cartaLogro(x.titulo, x.grande, x.texto || azar(FRASES.bosque))));
   }
   if (ES_CUMPLE(hoy) && leer('cumple', '') !== hoy.slice(0, 4)) {
@@ -233,5 +234,5 @@ function comprobarLogros() {
     lluvia(['🎂', '🎈', '🌻', '🐘', '💗', '🌸'], 60);
     pasearSalchicha();
   }
-  guardar('logros', { nivel: n, entrenos: d.entrenos, indice: v.indice, rango: rango.i });
+  guardar('logros', { nivel: n, entrenos: d.entrenos, indice: v.indice, rango: rango.i, aliados: cuantosAliados(d.toneladas) });
 }

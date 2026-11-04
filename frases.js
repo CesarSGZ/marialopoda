@@ -136,7 +136,7 @@ const FRASES = {
   ],
   bosque: [
     'Cuantos más entrenos, más grande y más bonito.',
-    'Tu bosque ya se ve desde muy lejos.',
+    'Tu bosque ya se ve desde el espacio. Te lo dice Grogu.',
     'Hasta los perros salchicha vienen a verlo.',
     'Los elefantes dicen que no habían visto nada igual.',
     'Este es el camino, y ahora tiene árboles a los lados.'
@@ -171,12 +171,36 @@ const FRASES = {
     'Tres elefantes espaciales te saludan con la trompa.',
     'Este es el camino, y ahora también el tuyo.'
   ],
-  galaxiaPierde: [
-    'Las agujetas también pasan en el espacio. Otra vez será.',
-    'Hasta Luke falló el primer disparo. Tú sigues siendo la mejor.',
-    'Grogu dice que ha sido culpa suya, y se come otra rana.',
-    'Una retirada a tiempo también es de campeonas.',
-    'El perro salchicha ya está reparando la nave con el hocico.'
+  aliados: [
+    'Grogu|👽|Va de copiloto y se come todo lo que encuentra.',
+    'R2-D2|🤖|Pita muy orgulloso cada vez que subes de peso.',
+    'C-3PO|🥇|Calcula tus probabilidades de récord. Siempre se queda corto.',
+    'Chewbacca|🐻|Te ha visto hacer peso muerto y ha rugido de respeto.',
+    'BB-8|⚽|Rueda a tu lado por todo el gimnasio.',
+    'Leia|👑|Dice que eres su única esperanza para el día de pierna.',
+    'Han Solo|🎲|Apuesta siempre por ti, y no le da miedo la estadística.',
+    'Luke|🌅|Se ha quedado mirando tus dorsales al atardecer.',
+    'Din Djarin|🪖|Este es el camino, dice, y te señala el rack.',
+    'Ahsoka|⚔️|Entrena contigo a dos sables y sin descansar.',
+    'Yoda|🧙|Hazlo o no lo hagas, pero la serie no la intentes.',
+    'Obi-Wan|🧔|Se alegra de verte, y te dice que eres muy fuerte.',
+    'Padmé|🌸|Te ha prestado un vestido para celebrar los récords.',
+    'Lando|🎩|Dice que tu nave es casi tan elegante como tú.',
+    'Bo-Katan|🛡️|Te ofrece un trono en Mandalore y tú prefieres la prensa.',
+    'Cara Dune|💪|Te pide consejo para los hombros, y eso ya es decir.',
+    'Peli Motto|🔧|Te arregla la nave, y te cobra en perros salchicha.',
+    'Kuiil|🛠️|Lo ha dicho claro: eres la más fuerte.',
+    'Wicket|🧸|Un ewok muy pequeño que te trae bayas entre serie y serie.',
+    'Maz Kanata|👓|Lleva mil años mirando a la gente, y nunca vio nada igual.'
+  ],
+  copiloto: [
+    'Grogu saluda con la manita.',
+    '¡Pirueta! Grogu se ha mareado un poco.',
+    'R2-D2 pita de alegría.',
+    'Que la Fuerza te acompañe, Marialópoda.',
+    'Grogu ha levantado la nave con la mente. Casi tanto como tú.',
+    'Un perro salchicha saluda desde otra nave.',
+    'Un elefante espacial os adelanta por la derecha.'
   ],
   nivel: [
     'La oruga ha subido de nivel, y te lo debe a ti.',
@@ -191,7 +215,7 @@ const FRASES = {
     '🥊 Te estás ganando a ti misma. Qué nivel.'
   ],
   novedades: [
-    'Tu bosque ahora es un paisaje enorme, y la galaxia es un videojuego: cada entreno te da vuelos para conquistar planetas. Corre a "Tu mundo".'
+    'Tu bosque ahora es un paisaje enorme, y en la galaxia tienes rango Jedi, flota y aliados que crecen con tus toneladas. Corre a "Tu mundo" y salta al hiperespacio.'
   ],
   cumple: [
     'Hoy las barras te cantan, los girasoles se giran hacia ti y los elefantes tocan la trompeta.',
