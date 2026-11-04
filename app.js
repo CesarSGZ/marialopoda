@@ -14,8 +14,6 @@ const PESO_REFERENCIA = 60;
 const estado = {
   sueltas: leer('sueltas', []),
   todasNotas: false,
-  verPlanetas: false,
-  aniosAbiertos: new Set(),
   cartas: [],
   dueloCelebrado: {},
   floresVistas: Infinity,
@@ -596,6 +594,8 @@ function terminar() {
     <p class="cifra">${miles(total)} kg</p>
     <p>Eso es lo que has movido hoy: ${equivale}, en ${hoy.length} ${hoy.length === 1 ? 'serie' : 'series'} y ${ejercicios} ${ejercicios === 1 ? 'ejercicio' : 'ejercicios'}.</p>
     ${pintarJardin('jardin final')}
+    <p>🚀 Tu nave ha ganado combustible para 3 vuelos más.</p>
+    <p>🌳 Tu árbol de esta semana ya lleva ${semana} ${semana === 1 ? 'entreno' : 'entrenos'}.</p>
     ${ganados ? `<p>🥊 Has ido por delante de tu yo del pasado en ${ganados} ${ganados === 1 ? 'ejercicio' : 'ejercicios'}.</p>` : ''}
     <p>${semana >= objetivo ? esc(azar(FRASES.semana)) : `Llevas ${semana} de ${objetivo} entrenos esta semana.`}</p>
     <p class="cesar">${esc(azar(FRASES.cesar))}<br>César</p>
@@ -1007,6 +1007,7 @@ function pintar() {
   document.querySelectorAll('#menu button').forEach((b) => {
     if (b.dataset.ver === estado.vista) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
   });
+  pararBosque();
   svgBicho = vestirBicho(svgBase, nivelDe(datosMundo(estado.filas).entrenos).nivel, ES_CUMPLE(hoyIso()));
   if (estado.vista === 'hoy') pintarHoy();
   else if (estado.vista === 'mundo') pintarMundo(objetivoSemanal());
@@ -1054,7 +1055,6 @@ document.addEventListener('click', (ev) => {
   if (t.dataset.grafica) { estado.grafica = t.dataset.grafica; return pintar(); }
   if (t.dataset.editar) return editarSerie(t.dataset.editar);
   if (t.dataset.nota) return editarSerie(t.dataset.nota, true);
-  if (t.dataset.anio) { const a = t.dataset.anio; if (estado.aniosAbiertos.has(a)) estado.aniosAbiertos.delete(a); else estado.aniosAbiertos.add(a); return pintar(); }
   if (t.dataset.elegir) { guardarBorrador(); estado.serieElegida[estado.ejercicio] = +t.dataset.elegir; return pintar(); }
   if (t.dataset.recuperar) return recuperarSerie(+t.dataset.recuperar);
   if (t.dataset.mover) return moverEjercicio(+t.dataset.mover, +t.dataset.v);
@@ -1076,7 +1076,7 @@ document.addEventListener('click', (ev) => {
     case 'cambiar': guardarBorrador(); return pintarCambio();
     case 'cambiar-otro': return cambiarEjercicio($('#otro').value);
     case 'ver-mas': guardarBorrador(); estado.verMas = !estado.verMas; return pintar();
-    case 'ver-planetas': estado.verPlanetas = !estado.verPlanetas; return pintar();
+    case 'bosque-play': return reproducirBosque();
     case 'ver-notas': estado.todasNotas = !estado.todasNotas; return pintarNotas();
     case 'terminar': return terminar();
     case 'cerrar': cerrarCapa(); return undefined;
@@ -1092,6 +1092,13 @@ document.addEventListener('click', (ev) => {
 });
 
 // Un toque en la cifra selecciona todo para sobrescribirla directamente.
+// Mover la barra del tiempo del bosque detiene la reproducción y lleva a esa semana.
+document.addEventListener('input', (ev) => {
+  if (ev.target.id !== 'tiempo-bosque') return;
+  pararBosque();
+  verBosqueEn(+ev.target.value);
+});
+
 document.addEventListener('focusin', (ev) => { if (ev.target.matches('.numero input')) ev.target.select(); });
 
 // Al cerrarse el teclado, iOS puede dejar la página desplazada: se devuelve a su sitio.

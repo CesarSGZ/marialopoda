@@ -265,20 +265,74 @@ textarea.nota { margin-top: 4px; resize: none; }
 .bicho svg { overflow: visible; }
 .barra-nivel { height: 10px; margin-top: 12px; border-radius: 5px; background: var(--berenjena); overflow: hidden; }
 .barra-nivel i { display: block; height: 100%; border-radius: 5px; background: var(--chicle); transition: width .5s; }
-.galaxia { background: radial-gradient(1px 1px at 12% 22%, #fff, transparent), radial-gradient(1px 1px at 76% 14%, #fff, transparent), radial-gradient(1.5px 1.5px at 42% 58%, #fff, transparent), radial-gradient(1px 1px at 88% 72%, #fff, transparent), radial-gradient(1.5px 1.5px at 22% 84%, #fff, transparent), #1B0B26; }
-.galaxia svg { display: block; width: 100%; height: auto; margin-top: 8px; overflow: visible; }
-.galaxia svg text { fill: var(--tinta); font: 600 13px 'Figtree', sans-serif; }
-.nave { animation: nave 3s ease-in-out infinite; }
-@keyframes nave { 50% { translate: 0 -4px; } }
-.planetas { list-style: none; margin: 8px 0 0; padding: 0; }
-.planetas li { display: flex; gap: 10px; padding: 8px 0; border-top: 1px solid var(--ciruela-2); font-size: 14.5px; }
-.planetas i { flex: none; width: 22px; height: 22px; margin-top: 2px; border-radius: 50%; }
-.planetas p { color: var(--tinta-2); }
-.anio { margin-top: 10px; }
-.anio-cab { display: flex; width: 100%; align-items: baseline; justify-content: space-between; gap: 8px; min-height: 40px; }
-.anio-cab b { font: 400 21px 'Bagel', sans-serif; }
-.anio-cab span { font-size: 13.5px; color: var(--tinta-2); }
-.bosque { display: block; width: 100%; height: auto; border-radius: 14px; }
+.galaxia { background: radial-gradient(1px 1px at 12% 22%, #fff, transparent), radial-gradient(1px 1px at 76% 14%, #fff, transparent), radial-gradient(1.5px 1.5px at 42% 58%, #fff, transparent), radial-gradient(1px 1px at 88% 72%, #fff, transparent), #1A0E36; }
+.galaxia .principal { display: block; width: 100%; min-height: 56px; margin: 8px 0; border-radius: 18px; background: var(--amarillo); color: var(--berenjena); font: 700 19px 'Figtree', sans-serif; animation: late 2.4s ease-in-out infinite; }
+@keyframes late { 50% { transform: scale(1.025); } }
+.galaxia .mundo-dato b { color: var(--tinta); }
+.sector { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 4px; }
+.sector b { text-align: center; }
+.sector button { flex: none; width: 44px; height: 44px; border-radius: 50%; background: var(--ciruela-2); color: var(--tinta); font-size: 22px; }
+.sector button:disabled { opacity: .3; }
+.mapa { display: block; width: 100%; height: auto; margin: 4px 0 8px; overflow: visible; }
+.mapa .planeta { cursor: pointer; }
+.mapa .titila { animation: titila 3.4s ease-in-out infinite; }
+@keyframes titila { 50% { opacity: .25; } }
+.mapa .pulso { animation: pulso 1.7s ease-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes pulso { from { transform: scale(.85); opacity: 1; } to { transform: scale(1.3); opacity: 0; } }
+.mapa .nave { animation: nave 3s ease-in-out infinite; }
+@keyframes nave { 50% { translate: 0 -3px; } }
+.marcador { display: flex; justify-content: space-between; gap: 8px; margin: 10px 0 8px; padding: 10px 12px; border-radius: 14px; background: rgba(255, 255, 255, .08); font-size: 14px; }
+.gal-botones { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0; }
+.hangar { text-align: left; }
+.hangar h2, .hangar .cifra { text-align: center; }
+.hangar h3 { margin: 14px 0 4px; font-size: 15px; }
+.hangar ul { list-style: none; margin: 0; padding: 0; }
+.hangar li { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid rgba(43, 16, 51, .18); }
+.hangar li > div { flex: 1; min-width: 0; }
+.hangar li p { margin: 0; font-size: 13px; opacity: .8; }
+.hangar .ico { flex: none; width: 28px; font-size: 22px; text-align: center; }
+.hangar .ico i { display: inline-block; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--berenjena); }
+.hangar li button { flex: none; min-width: 78px; min-height: 44px; padding: 0 10px; border-radius: 14px; background: var(--berenjena); color: var(--tinta); font-weight: 700; font-size: 13px; }
+.hangar li button:disabled { opacity: .45; }
+#juego { position: fixed; z-index: 20; inset: 0; background: #120828; display: flex; justify-content: center; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
+#juego canvas { display: block; touch-action: none; }
+.j-hud { position: absolute; top: env(safe-area-inset-top, 0px); left: 0; right: 0; display: flex; align-items: center; gap: 12px; padding: 6px 8px 6px 14px; color: #fff; font-weight: 700; pointer-events: none; }
+.j-vidas { font-size: 15px; letter-spacing: -1px; }
+.j-estrellas { margin-left: auto; }
+.j-hud button { pointer-events: auto; width: 44px; height: 44px; border-radius: 50%; background: rgba(255, 255, 255, .14); color: #fff; font-size: 17px; }
+.j-jefe { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 52px); left: 50%; width: min(86%, 380px); translate: -50% 0; text-align: center; color: #fff; font-size: 13px; pointer-events: none; }
+.j-jefe[hidden], .j-fin[hidden] { display: none; }
+.j-jefe i { display: block; height: 8px; margin-top: 3px; border-radius: 8px; background: rgba(255, 255, 255, .2); overflow: hidden; }
+.j-jefe u { display: block; height: 100%; width: 100%; background: var(--chicle-fuerte); }
+.j-aviso { position: absolute; top: 34%; left: 16px; right: 16px; text-align: center; color: #fff; font: 700 26px/1.2 'Figtree', sans-serif; text-shadow: 0 2px 10px #000; opacity: 0; pointer-events: none; }
+.j-aviso small { display: block; margin-top: 6px; font-size: 14px; font-weight: 500; }
+.j-aviso.sale { animation: aviso 2.1s ease both; }
+@keyframes aviso { 0% { opacity: 0; transform: scale(.8); } 12%, 72% { opacity: 1; transform: scale(1); } 100% { opacity: 0; } }
+.j-fin { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(18, 8, 40, .72); touch-action: auto; }
+@media (prefers-reduced-motion: reduce) { .mapa .titila, .mapa .pulso, .mapa .nave { animation: none; } }
+.marco-bosque { margin: 10px -4px 8px; border-radius: 16px; overflow: hidden; }
+.bosque { display: block; width: 100%; height: auto; }
+.tiempo { display: flex; align-items: center; gap: 10px; }
+.tiempo .play { flex: none; width: 44px; height: 44px; border-radius: 50%; background: var(--chicle); color: var(--berenjena); font-size: 16px; }
+.tiempo input { flex: 1; min-width: 0; height: 44px; accent-color: var(--chicle); }
+.tiempo span { flex: none; min-width: 62px; text-align: right; font-size: 13px; color: var(--tinta-2); }
+.habitantes { font-size: 18px; line-height: 1.5; color: var(--tinta); overflow-wrap: anywhere; }
+.bosque text { pointer-events: none; }
+.bosque .vive { animation: vive 3.4s ease-in-out infinite; }
+@keyframes vive { 50% { transform: translateY(-1.5px); } }
+.bosque .nube { animation: nube 70s linear infinite alternate; }
+.bosque .nube.lenta { animation-duration: 110s; animation-direction: alternate-reverse; }
+@keyframes nube { to { transform: translateX(120px); } }
+.bosque .pajaro { animation: pajaro 26s linear infinite; }
+@keyframes pajaro { from { translate: -30px 0; } to { translate: 390px -14px; } }
+.bosque .vuela { animation: vuela 7s ease-in-out infinite; }
+@keyframes vuela { 25% { transform: translate(14px, -10px); } 50% { transform: translate(26px, 2px); } 75% { transform: translate(10px, 9px); } }
+.bosque .zumba { animation: zumba 2.6s ease-in-out infinite; }
+@keyframes zumba { 25% { transform: translate(7px, -5px); } 50% { transform: translate(-3px, -9px); } 75% { transform: translate(-8px, -2px); } }
+.bosque .luz { animation: luz 2.8s ease-in-out infinite; }
+@keyframes luz { 50% { opacity: .15; transform: translateY(-5px); } }
+.bosque .petalo { animation: petalo 11s linear infinite; }
+@keyframes petalo { to { transform: translate(40px, 350px); } }
 .bosque [data-semana] { cursor: pointer; }
 .bosque .crece { transform-box: fill-box; transform-origin: 50% 100%; animation: crece 3s ease-in-out infinite; }
 @keyframes crece { 50% { transform: rotate(2deg) scale(1.05); } }

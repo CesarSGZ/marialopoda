@@ -134,6 +134,13 @@ const FRASES = {
     'Semana perfecta. El comité de salchichas te da su medalla.',
     'Semana completa: trilogía terminada y con spin-off.'
   ],
+  bosque: [
+    'Cuantos más entrenos, más grande y más bonito.',
+    'Tu bosque ya se ve desde muy lejos.',
+    'Hasta los perros salchicha vienen a verlo.',
+    'Los elefantes dicen que no habían visto nada igual.',
+    'Este es el camino, y ahora tiene árboles a los lados.'
+  ],
   planetas: [
     'Tatooine|#D9A066|Arena por todas partes, y tú entrenando igual.',
     'Naboo|#6FBF73|Aquí hay flores casi tan bonitas como tu jardín.',
@@ -154,6 +161,23 @@ const FRASES = {
     'Kashyyyk|#2F7D4F|Árboles gigantes y wookiees que te abrazan.',
     'Yavin 4|#7DAA6A|Medalla de la rebelión para ti. Te la has ganado.'
   ],
+  exploracion: [
+    'Nadie había levantado tanto por aquí. Te miran con respeto.',
+    'Los locales te ofrecen batido de proteínas de bienvenida.',
+    'Dicen que aquí nació la primera sentadilla.',
+    'Hay un gimnasio, pero no tiene discos suficientes para ti.',
+    'Grogu ha encontrado algo que comer. Como siempre.',
+    'Un perro salchicha galáctico te sigue hasta la nave.',
+    'Tres elefantes espaciales te saludan con la trompa.',
+    'Este es el camino, y ahora también el tuyo.'
+  ],
+  galaxiaPierde: [
+    'Las agujetas también pasan en el espacio. Otra vez será.',
+    'Hasta Luke falló el primer disparo. Tú sigues siendo la mejor.',
+    'Grogu dice que ha sido culpa suya, y se come otra rana.',
+    'Una retirada a tiempo también es de campeonas.',
+    'El perro salchicha ya está reparando la nave con el hocico.'
+  ],
   nivel: [
     'La oruga ha subido de nivel, y te lo debe a ti.',
     'Más patas, más fuerza, más linda.',
@@ -167,7 +191,7 @@ const FRASES = {
     '🥊 Te estás ganando a ti misma. Qué nivel.'
   ],
   novedades: [
-    'Ya tienes un bosque, una oruga que evoluciona y un viaje por la galaxia. Míralo en "Tu mundo".'
+    'Tu bosque ahora es un paisaje enorme, y la galaxia es un videojuego: cada entreno te da vuelos para conquistar planetas. Corre a "Tu mundo".'
   ],
   cumple: [
     'Hoy las barras te cantan, los girasoles se giran hacia ti y los elefantes tocan la trompeta.',
