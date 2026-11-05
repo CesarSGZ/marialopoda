@@ -134,7 +134,7 @@ function abrirCaminadora(id) {
   const c = $('#capa');
   c.innerHTML = `<div class="tarjeta sobria" role="dialog" aria-label="Caminadora">
     <h2 class="gorda">🚶‍♀️ Caminadora</h2>
-    <div class="numeros tres">${campoCaminadora('cinc', 'Inclinación', v.inc, 0.5)}${campoCaminadora('cvel', 'km/h', v.vel, 0.5)}${campoCaminadora('cmin', 'Minutos', v.min, 5)}</div>
+    <div class="numeros tres">${campoCaminadora('cinc', 'Inclinación', v.inc, 0.5)}${campoCaminadora('cvel', 'km/h', v.vel, 0.1)}${campoCaminadora('cmin', 'Minutos', v.min, 5)}</div>
     <p class="camina-km" id="camina-km"></p>
     <button type="button" class="principal" data-accion="guardar-caminadora">${f ? 'Guardar cambios' : 'Apuntar caminadora'}</button>
     ${f ? '<button type="button" class="secundario" data-accion="borrar-serie">Borrar</button>' : ''}
