@@ -115,10 +115,11 @@ function diaSugerido() {
 }
 
 // Sesiones anteriores a hoy de un ejercicio, de la más reciente a la más antigua.
-function sesionesPrevias(ej, cuantas) {
+// Con conHoy también entra la de hoy (cuando ya terminó el ejercicio, para verla en la lista).
+function sesionesPrevias(ej, cuantas, conHoy) {
   const porFecha = new Map();
   for (const f of filasDe(ej)) {
-    if (f[F.FECHA] >= hoyIso()) continue;
+    if (conHoy ? f[F.FECHA] > hoyIso() : f[F.FECHA] >= hoyIso()) continue;
     if (!porFecha.has(f[F.FECHA])) porFecha.set(f[F.FECHA], []);
     porFecha.get(f[F.FECHA]).push(f);
   }
@@ -126,6 +127,8 @@ function sesionesPrevias(ej, cuantas) {
     .map((fecha) => ({ fecha, series: porFecha.get(fecha).sort((a, b) => a[F.SERIE] - b[F.SERIE]) }));
 }
 const ultimaVez = (ej) => sesionesPrevias(ej, 1)[0] || null;
+const terminadoHoy = (r) => { const s = seriesDe(r); return s.completo && s.hechas.length > 0; };
+const fechaFila = (fecha) => (fecha === hoyIso() ? 'Hoy' : fechaCorta(fecha).slice(0, -3));
 
 const mediana = (a) => { const s = a.slice().sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
 
@@ -351,7 +354,7 @@ function pintarHoy() {
 function pintarAnteriores(r) {
   if (r.medida) return pintarAnterioresMedidos(r);
   const cuantas = estado.verMas ? 6 : 2;
-  const todas = sesionesPrevias(r.ejercicio, 7);
+  const todas = sesionesPrevias(r.ejercicio, 7, terminadoHoy(r));
   if (!todas.length) return '<p class="ultima">Primera vez. Busca un peso cómodo y apúntalo.</p>';
   const visibles = todas.slice(0, cuantas);
   const techo = Math.max(...visibles.flatMap((s) => s.series.map((f) => +f[F.KG])), 1);
@@ -369,7 +372,7 @@ function pintarAnteriores(r) {
     }
     const notas = s.series.filter((f) => notaDe(f).trim()).map((f) => `<p class="nota-antes">${r.circuito ? 'Vuelta' : 'Serie'} ${f[F.SERIE]}: ${esc(notaDe(f))}</p>`).join('');
     return `<div class="fila-antes ${i ? '' : 'reciente'}" style="--cols:${columnas}">
-      <span class="fecha">${fechaCorta(s.fecha).slice(0, -3)}${dif ? `<em class="${dif > 0 ? 'sube' : 'baja'}">${dif > 0 ? '+' : '−'}${num(Math.abs(dif))}</em>` : ''}</span>${celdas.join('')}</div>${notas}`;
+      <span class="fecha">${fechaFila(s.fecha)}${dif ? `<em class="${dif > 0 ? 'sube' : 'baja'}">${dif > 0 ? '+' : '−'}${num(Math.abs(dif))}</em>` : ''}</span>${celdas.join('')}</div>${notas}`;
   }).join('');
   return `<div class="antes" aria-label="Sesiones anteriores">${filas}</div>`;
 }
@@ -419,7 +422,7 @@ function pintarFoco(r) {
     ${pintarAnteriores(r)}
     <div class="bajo-antes">
       <span>${r.medida ? (mejorSeg ? `Tu mejor: ${aTiempo(mejorSeg)} en ${miles(b.reps)} m` : '') : marca.kg ? `Tu récord: ${num(marca.kg)} kg` : ''}</span>
-      ${sesionesPrevias(r.ejercicio, 3).length > 2 ? `<button type="button" class="ver-mas" data-accion="ver-mas">${estado.verMas ? 'Ver menos' : 'Ver más'}</button>` : ''}
+      ${sesionesPrevias(r.ejercicio, 3, terminadoHoy(r)).length > 2 ? `<button type="button" class="ver-mas" data-accion="ver-mas">${estado.verMas ? 'Ver menos' : 'Ver más'}</button>` : ''}
     </div>
     ${pintarDuelo(r, b.kg, b.reps)}
     ${sub ? `<button type="button" class="subir" data-subir="${sub}">Las hiciste todas a ${r.reps} o más. ¿Pruebas con ${num(sub)} kg?</button>` : ''}

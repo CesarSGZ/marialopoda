@@ -93,7 +93,7 @@ const leerTiempo = (min, seg) => Math.round(leerNumero(min, 0) * 60 + leerNumero
 // Las sesiones anteriores de remo y esquí: cada celda se rellena según lo rápido que fue.
 function pintarAnterioresMedidos(r) {
   const cuantas = estado.verMas ? 6 : 2;
-  const todas = sesionesPrevias(r.ejercicio, 7);
+  const todas = sesionesPrevias(r.ejercicio, 7, terminadoHoy(r));
   if (!todas.length) return '<p class="ultima">Primera vez. Apunta los metros y el tiempo que marque la máquina.</p>';
   const visibles = todas.slice(0, cuantas);
   const ritmo = (f) => { const s = segundosDe(f); return s ? +f[F.REPS] / s : 0; };
@@ -108,7 +108,7 @@ function pintarAnterioresMedidos(r) {
     const mejor = (x) => { const l = x.series.map(segundosDe).filter(Boolean); return l.length ? Math.min(...l) : 0; };
     const previa = todas[i + 1], ahora = mejor(s), antes = previa ? mejor(previa) : 0;
     const dif = ahora && antes && s.series[0][F.REPS] === previa.series[0][F.REPS] ? ahora - antes : 0;
-    return `<div class="fila-antes ${i ? '' : 'reciente'}" style="--cols:${columnas}"><span class="fecha">${fechaCorta(s.fecha).slice(0, -3)}${dif ? `<em class="${dif < 0 ? 'sube' : 'baja'}">${dif < 0 ? '−' : '+'}${Math.abs(dif)} s</em>` : ''}</span>${celdas.join('')}</div>`;
+    return `<div class="fila-antes ${i ? '' : 'reciente'}" style="--cols:${columnas}"><span class="fecha">${fechaFila(s.fecha)}${dif ? `<em class="${dif < 0 ? 'sube' : 'baja'}">${dif < 0 ? '−' : '+'}${Math.abs(dif)} s</em>` : ''}</span>${celdas.join('')}</div>`;
   }).join('')}</div>`;
 }
 
