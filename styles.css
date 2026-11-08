@@ -102,7 +102,7 @@ textarea.nota { margin-top: 4px; resize: none; }
 .lista-cab h2 { font-size: 22px; }
 .lista-cab button { min-height: 40px; font-size: 14px; font-weight: 700; color: var(--chicle); }
 
-.reposo { background: var(--ciruela); border-radius: 28px; padding: 22px 18px; }
+section.reposo { background: var(--ciruela); border-radius: 28px; padding: 22px 18px; }
 .reposo .gorda { font-size: 30px; margin-bottom: 10px; }
 .reposo p:last-child { color: var(--tinta-2); }
 
@@ -487,21 +487,33 @@ textarea.nota { margin-top: 4px; resize: none; }
 @media (prefers-reduced-motion: reduce) { .bosque *, .escena-oruga *, .senda * { animation: none !important; } }
 .duelo { margin: 2px 0 8px; padding: 8px 10px; border-radius: 12px; background: var(--berenjena); font-size: 14px; line-height: 1.3; color: var(--tinta-2); }
 .duelo.gana { color: var(--tinta); font-weight: 700; }
-.cuerpo svg { display: block; width: 100%; max-width: 360px; height: auto; margin: 0 auto; }
-.cuerpo svg text { fill: var(--tinta-2); font: 600 13px 'Figtree', sans-serif; }
-.cuerpo .base { fill: #3A1A45; }
-.zona { cursor: pointer; }
-.n-sin { fill: #4A3353; }
-.n0, .n1 { fill: #7A3C68; } .n2 { fill: #A8467C; } .n3 { fill: #D6588F; } .n4 { fill: #FF7DB0; } .n5 { fill: #FFC2DA; }
-.leyenda { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 10px; margin-top: 8px; font-size: 12.5px; color: var(--tinta-2); }
+.estrella { margin: 2px 0 8px; font-size: 15px; color: var(--tinta-2); }
+.estrella b { color: var(--amarillo); }
+.maria-marco { position: relative; margin: 0 auto; max-width: 420px; padding: 14px 6px 6px; border-radius: 22px; background: radial-gradient(120% 90% at 50% 10%, #5A2A6C 0%, var(--ciruela) 55%, #2E1238 100%); }
+#maria { display: block; width: 100%; height: auto; image-rendering: pixelated; image-rendering: crisp-edges; cursor: pointer; touch-action: manipulation; }
+.maria-pies { display: grid; grid-template-columns: 1fr 1fr; text-align: center; margin-top: 2px; font: 600 13px 'Figtree', sans-serif; color: var(--tinta-2); }
+.leyenda { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 10px; margin-top: 10px; font-size: 12.5px; color: var(--tinta-2); }
 .leyenda span { display: inline-flex; align-items: center; gap: 4px; }
-.leyenda i { width: 12px; height: 12px; border-radius: 4px; }
-.leyenda .n1 { background: #7A3C68; } .leyenda .n2 { background: #A8467C; } .leyenda .n3 { background: #D6588F; } .leyenda .n4 { background: #FF7DB0; } .leyenda .n5 { background: #FFC2DA; }
-.fuerzas { list-style: none; margin: 10px 0 6px; padding: 0; }
-.fuerzas li { display: flex; justify-content: space-between; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--ciruela); }
-.fuerzas b { display: block; font-size: 15px; }
-.fuerzas small { display: block; font-size: 13px; color: var(--tinta-2); }
-.fuerza-dato { flex: none; text-align: right; }
+.leyenda i, .fz-barra i { border-radius: 4px; }
+.leyenda i { width: 11px; height: 11px; border-radius: 50%; box-shadow: 0 0 0 2px #fff; }
+.n0 { background: #C9A3DB; } .n1 { background: #9B87F0; } .n2 { background: #3FA0E8; } .n3 { background: #2FC98A; } .n4 { background: #FF7A45; } .n5 { background: #FFC531; }
+.fuerzas { list-style: none; margin: 12px 0 6px; padding: 0; }
+.fuerzas li { border-bottom: 1px solid var(--ciruela); }
+.fuerzas button { display: block; width: 100%; text-align: left; padding: 10px 6px; border-radius: 12px; color: inherit; }
+.fuerzas li.elegido button { background: var(--ciruela); box-shadow: inset 0 0 0 2px var(--tinta); }
+.fz-cab { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.fz-cab > b { font-size: 15px; }
+.fz-dato { flex: none; font-size: 13px; color: var(--tinta-2); }
+.fz-dato b { color: var(--tinta); font-size: 15px; }
+.fz-barra { position: relative; display: block; height: 9px; margin: 7px 0 6px; border-radius: 5px; background: #2E1238; overflow: hidden; }
+.fz-barra i { position: absolute; left: 0; top: 0; bottom: 0; }
+.fz-barra em { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(255, 244, 248, .35); }
+.fuerzas small { display: block; font-size: 12.5px; line-height: 1.35; color: var(--tinta-2); }
+.medidas { display: flex; gap: 4px; margin: 6px 0 2px; padding: 3px; border-radius: 14px; background: var(--berenjena); width: fit-content; max-width: 100%; flex-wrap: wrap; }
+.medidas button { min-height: 34px; padding: 0 12px; border-radius: 11px; font-size: 13.5px; font-weight: 700; color: var(--tinta-2); }
+.medidas button[aria-pressed="true"] { background: var(--chicle); color: var(--berenjena); }
+.medida-pie { margin-top: 4px; }
+.sesiones td.detalle { color: var(--tinta-2); font-size: 13px; text-align: left; }
 
 /* ---- Sorpresas ---- */
 .bicho svg { animation: respira 3.6s ease-in-out infinite; transform-origin: 50% 90%; }

@@ -7,6 +7,25 @@ const guardar = (k, v) => { try { localStorage.setItem('mlp.' + k, JSON.stringif
 // Columnas de una fila: como las pestaña Registro.
 const F = { FECHA: 0, DIA: 1, EJ: 2, MUSC: 3, SERIE: 4, REPS: 5, KG: 6, NOTA: 7, ORIGEN: 8, ID: 9 };
 
+// Nombres del Sheet que mezclaban máquinas distintas: se separan al leer, sin reescribir el Sheet
+// (el Apps Script marcaría como "app" las filas importadas y se perdería de dónde vienen).
+const ABD_POLEA = 'Abductores sentada en polea';
+const TRI_BARRA = 'Tríceps en polea alta con barra';
+const NUEVO_NOMBRE = {
+  'Press militar': () => 'Press militar con mancuernas',
+  // Todo lo del Excel fue en la Technogym de discos; desde la app, en la sentada con polea.
+  Abductores: (f) => (f && f[F.ORIGEN] !== 'app' ? 'Abductores Technogym con discos' : ABD_POLEA),
+  // Desde 2025, polea alta con minibarra. Antes, el día 2 era con mancuerna a dos manos (~20 kg) y el 4, a una mano en polea baja (~5 kg).
+  'Tríceps en polea': (f) => (!f || f[F.FECHA] >= '2025-01-01' ? TRI_BARRA
+    : +f[F.DIA] === 4 ? 'Tríceps unilateral en polea baja' : 'Extensión de tríceps con mancuerna a dos manos')
+};
+function renombrarFila(f) {
+  const n = NUEVO_NOMBRE[f[F.EJ]];
+  if (!n) return f;
+  const c = f.slice(); c[F.EJ] = n(f); return c;
+}
+const renombrarRutina = (r) => (NUEVO_NOMBRE[r.ejercicio] ? { ...r, ejercicio: NUEVO_NOMBRE[r.ejercicio](null) } : r);
+
 const NOTA_SUELTA = 'Nota';
 // El mapa del cuerpo compara con el baremo de una mujer de este peso; no se le pide el suyo.
 const PESO_REFERENCIA = 60;
@@ -19,14 +38,15 @@ const estado = {
   floresVistas: Infinity,
   toquesBicho: 0,
   codigo: leer('codigo', null),
-  rutina: leer('rutina', []),
-  filas: leer('filas', []),
+  rutina: leer('rutina', []).map(renombrarRutina),
+  filas: leer('filas', []).map(renombrarFila),
   cola: leer('cola', []),
   vista: 'hoy',
   dia: null,
   ejercicio: null,
   borrador: {},      // { 'ejercicio': { kg, reps, serie } }
   plan: leer('plan', null),
+  medidas: leer('medidas', {}),
   serieElegida: {},
   verMas: false,
   editando: null,
@@ -196,9 +216,9 @@ function fusionar(servidor) {
   const borradas = new Set();
   for (const op of estado.cola) {
     if (op.tipo === 'borrar') borradas.add(op.id);
-    else pendientes.set(op.fila.id, aFila(op.fila));
+    else pendientes.set(op.fila.id, renombrarFila(aFila(op.fila)));
   }
-  const filas = servidor.filter((f) => !borradas.has(f[F.ID]) && !pendientes.has(f[F.ID]));
+  const filas = servidor.map(renombrarFila).filter((f) => !borradas.has(f[F.ID]) && !pendientes.has(f[F.ID]));
   // Las notas sueltas de los Excel antiguos no son series: solo salen en la lista de notas.
   estado.sueltas = filas.filter((f) => f[F.EJ] === NOTA_SUELTA);
   estado.filas = filas.filter((f) => f[F.EJ] !== NOTA_SUELTA).concat([...pendientes.values()]);
@@ -231,7 +251,7 @@ async function descargar() {
   const d = await r.json();
   if (d.error === 'clave') { estado.errorClave = true; return false; }
   estado.errorClave = false;
-  estado.rutina = d.rutina;
+  estado.rutina = d.rutina.map(renombrarRutina);
   fusionar(d.filas);
   guardar('rutina', estado.rutina);
   guardar('filas', estado.filas);
@@ -792,7 +812,8 @@ function resumenes() {
       e.sube = prim > 0 ? e.mejor / prim - 1 : 0;
     }
   });
-  const conDatos = lista.filter((e) => e.hist.length >= 4);
+  // Lo de la rutina sale desde la primera sesión; lo antiguo, solo si tiene historia.
+  const conDatos = lista.filter((e) => e.hist.length >= 4 || (e.hist.length && estado.rutina.some((r) => r.ejercicio === e.ej)));
   return { orden: orden.filter((m) => conDatos.some((e) => e.musc === m)), lista: conDatos };
 }
 
@@ -854,6 +875,7 @@ function pintarProgreso() {
     <h2 class="gorda seccion">Tus notas</h2>
     <div id="notas"></div>`;
   pintarGrafica(lista.find((e) => e.ej === estado.grafica));
+  dibujarMaria();
   pintarEvolucionCircuito();
   pintarSemanas();
   pintarSubidas(lista, conRecord);
@@ -886,16 +908,58 @@ function pintarSemanas() {
   $('#semanas').innerHTML = celdas.join('');
 }
 
+// ---------- Medidas de la evolución ----------
+// Tres formas de medir cada sesión. En lo importado del Excel se usan medianas, por las erratas sueltas.
+const MEDIDAS = {
+  rm: { nombre: '1RM estimado', unidad: 'kg', explica: 'El peso que moverías a una sola repe, estimado con tu mejor serie (fórmula de Epley).' },
+  volumen: { nombre: 'Kg × repes', unidad: 'kg·rep', explica: 'Peso medio por repes medias de cada serie: sube tanto si pones más peso como si haces más repes.' },
+  medio: { nombre: 'Peso medio', unidad: 'kg', explica: 'La media del peso de todas las series de ese día.' },
+  repes: { nombre: 'Repes', unidad: 'repes', explica: 'Repes medias por serie.' }
+};
+// Los aislados suben sobre todo a base de repes; los básicos, de peso.
+const AISLADO = /Abductor|Aductor|Patada|Elevaciones|Face pull|Gemelos|Hiperextensiones|Hombro frontal|Bíceps|Tríceps|Remo al mentón|Extensión de cuádriceps|Curl femoral|Abdominales/;
+const medidasDe = (ej) => (SIN_LASTRE[ej] ? ['repes'] : ['rm', 'volumen', 'medio']);
+const medidaPorDefecto = (ej) => (SIN_LASTRE[ej] ? 'repes' : AISLADO.test(ej) ? 'volumen' : 'rm');
+const medidaDe = (ej) => { const m = (estado.medidas || {})[ej]; return medidasDe(ej).includes(m) ? m : medidaPorDefecto(ej); };
+const rmSerie = (kg, reps) => (kg > 0 && reps >= 1 && reps <= 20 ? (reps === 1 ? kg : kg * (1 + reps / 30)) : 0);
+const media = (a) => a.reduce((s, v) => s + v, 0) / a.length;
+
+function sesionesMedidas(ej) {
+  const porFecha = new Map();
+  for (const f of filasDe(ej)) { if (!porFecha.has(f[F.FECHA])) porFecha.set(f[F.FECHA], []); porFecha.get(f[F.FECHA]).push(f); }
+  return [...porFecha.keys()].sort().map((fecha) => {
+    const fs = porFecha.get(fecha).sort((a, b) => a[F.SERIE] - b[F.SERIE]);
+    const app = fs.some((f) => f[F.ORIGEN] === 'app');
+    const junta = app ? media : mediana;
+    const kgs = fs.map((f) => +f[F.KG]).filter((v) => v > 0);
+    const reps = fs.map((f) => +f[F.REPS]).filter((v) => v > 0 && v <= 30);
+    const rms = fs.map((f) => rmSerie(+f[F.KG], +f[F.REPS])).filter((v) => v > 0);
+    const kg = kgs.length ? junta(kgs) : 0, rp = reps.length ? junta(reps) : 0;
+    return { fecha, fs, rm: rms.length ? (app ? Math.max(...rms) : mediana(rms)) : 0, medio: kg, volumen: kg * rp, repes: rp };
+  });
+}
+const redondeo = (v) => (v >= 100 ? Math.round(v) : Math.round(v * 10) / 10);
+const resumenSesion = (s) => {
+  const reps = s.fs.map((f) => f[F.REPS]).filter((r) => r !== '');
+  const kgs = [...new Set(s.fs.map((f) => +f[F.KG]).filter((v) => v > 0))];
+  return `${reps.join(' · ')}${reps.length ? ' repes' : ''}${kgs.length ? ` a ${kgs.map(num).join('/')} kg` : ''}`;
+};
+
 function pintarGrafica(e) {
   const caja = $('#caja');
-  const unidad = SIN_LASTRE[e.ej] ? 'repes' : 'kg';
-  const h = e.hist;
+  const medida = medidaDe(e.ej), M = MEDIDAS[medida];
+  const unidad = M.unidad;
+  const sesiones = sesionesMedidas(e.ej).filter((s) => s[medida] > 0);
+  if (!sesiones.length) { caja.innerHTML = `<h3 class="gorda">${esc(e.ej)}</h3><p class="res">Sin datos que medir.</p>`; return; }
+  const h = sesiones.map((s) => [s.fecha, redondeo(s[medida])]);
+  e = { ...e, primero: h.slice(0, 3).map((p) => p[1]).sort((a, b) => a - b)[Math.min(1, h.slice(0, 3).length - 1)], mejor: Math.max(...h.map((p) => p[1])) };
+  e.sube = e.primero > 0 ? e.mejor / e.primero - 1 : 0;
   const W = 340, H = 210, pi = 34, pd = 12, ps = 10, pa = 24;
   const t = (iso) => new Date(iso).getTime();
   const x0 = t(h[0][0]), x1 = Math.max(t(h[h.length - 1][0]), x0 + 864e5);
   const vals = h.map((p) => p[1]);
   const techo = Math.max(...vals);
-  const paso = [1, 2, 5, 10, 20, 25, 50, 100].find((s) => techo / s <= 4) || 200;
+  const paso = [1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000].find((s) => techo / s <= 5) || 2000;
   const yMax = Math.ceil(techo / paso) * paso;
   const X = (iso) => pi + (t(iso) - x0) / (x1 - x0) * (W - pi - pd);
   const Y = (v) => H - pa - v / yMax * (H - pa - ps);
@@ -912,7 +976,10 @@ function pintarGrafica(e) {
   h.forEach((p) => { if (p[1] > marca) { marca = p[1]; aros.push(p); } });
   const ultimos = aros.slice(-1);
   const texto = `<b>De ${num(e.primero)} a ${num(e.mejor)} ${unidad}</b>${e.sube > 0 ? `: +${Math.round(e.sube * 100)} %` : ''}`;
-  caja.innerHTML = `<h3 class="gorda">${esc(e.ej)}</h3><p class="res" id="res">${texto}</p>
+  const opciones = medidasDe(e.ej);
+  caja.innerHTML = `<h3 class="gorda">${esc(e.ej)}</h3>
+    ${opciones.length > 1 ? `<div class="medidas" role="group" aria-label="Qué medir">${opciones.map((m) => `<button type="button" data-medida="${m}" aria-pressed="${m === medida}">${MEDIDAS[m].nombre}</button>`).join('')}</div>` : ''}
+    <p class="res" id="res">${texto}</p>
     <div class="grafica" id="graf"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(e.ej)}: de ${num(e.primero)} a ${num(e.mejor)} ${unidad}">
       ${rejilla.join('')}${anios.join('')}
       <path d="${d}" fill="none" stroke="var(--chicle)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
@@ -920,7 +987,8 @@ function pintarGrafica(e) {
       <line id="guia" y1="${ps}" y2="${H - pa}" stroke="var(--tinta-2)" stroke-width="1" visibility="hidden"/>
       <circle id="punto" r="5" fill="var(--tinta)" stroke="var(--ciruela)" stroke-width="2" visibility="hidden"/>
     </svg></div>
-    <details class="sesiones"><summary>Ver las últimas sesiones</summary><table>${h.slice(-8).reverse().map((p) => `<tr><td>${fechaCorta(p[0])}</td><td>${num(p[1])} ${unidad}</td></tr>`).join('')}</table></details>`;
+    <p class="pie medida-pie">${esc(M.explica)}</p>
+    <details class="sesiones"><summary>Ver las últimas sesiones</summary><table>${sesiones.slice(-10).reverse().map((s) => `<tr><td>${fechaCorta(s.fecha)}</td><td class="detalle">${esc(resumenSesion(s))}</td><td>${num(redondeo(s[medida]))} ${unidad}</td></tr>`).join('')}</table></details>`;
   const graf = $('#graf'), guia = $('#guia'), punto = $('#punto'), res = $('#res');
   const mover = (ev) => {
     const r = graf.getBoundingClientRect();
@@ -1104,19 +1172,14 @@ document.addEventListener('pointerup', (ev) => {
 
 document.addEventListener('click', (ev) => {
   const t = ev.target.closest('button');
-  if (!t) {
-    const zona = ev.target.closest && ev.target.closest('[data-mapa]');
-    if (zona) {
-      const d = fuerzaPorMusculo(PESO_REFERENCIA, hoyIso()).find((x) => x.musculo === zona.dataset.mapa);
-      decir(d && d.mejor ? `${d.musculo}: superas al ${d.mejor.por} % de las mujeres que entrenan` : `${zona.dataset.mapa}: sin datos del último año`);
-    }
-    return;
-  }
+  if (!t) return;
   if (t.dataset.ver) { guardarBorrador(); estado.vista = t.dataset.ver; $('#pantalla').scrollTo(0, 0); return pintar(); }
   if (t.dataset.dia) { guardarBorrador(); estado.dia = +t.dataset.dia; estado.ejercicio = null; return pintar(); }
   if (t.dataset.ej) { guardarBorrador(); estado.ejercicio = t.dataset.ej; $('#pantalla').scrollTo({ top: 0, behavior: 'smooth' }); return pintar(); }
   if (t.dataset.musculo) { estado.musculo = t.dataset.musculo; estado.grafica = null; return pintar(); }
   if (t.dataset.grafica) { estado.grafica = t.dataset.grafica; return pintar(); }
+  if (t.dataset.medida) { estado.medidas = { ...(estado.medidas || {}), [estado.grafica]: t.dataset.medida }; guardar('medidas', estado.medidas); return pintarGrafica(resumenes().lista.find((x) => x.ej === estado.grafica)); }
+  if (t.dataset.musculoMapa) return mostrarMusculo(t.dataset.musculoMapa);
   if (t.dataset.editar) return editarSerie(t.dataset.editar);
   if (t.dataset.nota) return editarSerie(t.dataset.nota, true);
   if (t.dataset.elegir) { guardarBorrador(); estado.serieElegida[estado.ejercicio] = +t.dataset.elegir; return pintar(); }
