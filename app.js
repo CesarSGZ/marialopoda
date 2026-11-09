@@ -844,6 +844,21 @@ function haceUnAno(lista) {
   const desde = Math.floor(hoy.getTime() / 864e5) % todas.length;
   return todas.slice(desde).concat(todas.slice(0, desde));
 }
+// Las cifras de siempre: desde cuándo entrena y cómo han subido sus tres básicos (1RM estimado: mejor marca y la primera).
+function pintarCifras() {
+  const todas = estado.filas.filter((f) => f[F.EJ] !== CAMINADORA);
+  if (!todas.length) return '';
+  const desde = todas.reduce((m, f) => (f[F.FECHA] < m ? f[F.FECHA] : m), hoyIso());
+  const enApp = todas.filter((f) => f[F.ORIGEN] === 'app').length;
+  const basicos = ['Hip thrust', 'Sentadilla', 'Jalón al pecho'].map((ej) => {
+    const h = valoresPorFecha(ej, (f) => e1rmDe(+f[F.KG], +f[F.REPS])).filter((p) => p[1] > 0).sort((a, b) => (a[0] < b[0] ? -1 : 1));
+    return h.length ? { ej, primero: h[0][1], mejor: Math.max(...h.map((p) => p[1])) } : null;
+  }).filter(Boolean);
+  return `<div class="cifras">
+    <div><small>Desde</small><b class="gorda">${desde.slice(0, 4)}</b><span>${miles(todas.length)} series, ${miles(enApp)} en la app</span></div>
+    ${basicos.map((b) => `<div><small>${esc(b.ej)}</small><b class="gorda">${miles(b.mejor)}</b><span>1RM, desde ${miles(b.primero)} kg</span></div>`).join('')}
+  </div>`;
+}
 function pintarHace(lista) {
   if (!lista.length) return '';
   const i = (estado.haceVez || 0) % lista.length, h = lista[i];
@@ -874,6 +889,7 @@ function pintarProgreso() {
       <button class="bicho" type="button" aria-label="Saludar a Marialópoda" data-accion="bicho">${svgBicho}</button>
     </div>
     <p class="datos-vida"><b>${semanas} semanas</b> entrenando, <b>${miles(deFuerza.length)} series</b> apuntadas y más de <b>${miles(toneladas)} toneladas</b> movidas.${florecidas ? ` Y <b>${miles(florecidas)} ${florecidas === 1 ? 'flor plantada' : 'flores plantadas'}</b> en tu jardín 🌻` : ''}</p>
+    ${pintarCifras()}
     ${pintarHace(hace)}
     ${pintarUltimoAno()}
     <h2 class="gorda seccion">Por músculo</h2>

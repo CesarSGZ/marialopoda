@@ -617,3 +617,10 @@ button.hace { display: block; width: 100%; text-align: left; font: inherit; font
 .test-musculo small { font-weight: 400; color: var(--tinta-2); font-size: 13px; }
 .test-boton { display: block; width: 100%; margin: 0 0 14px; min-height: 52px; border-radius: 18px; background: var(--amarillo); color: var(--berenjena); font-weight: 700; font-size: 16px; }
 .opciones button small { display: block; font-weight: 400; font-size: 13px; color: var(--tinta-2); }
+
+.cifras { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0 0 16px; }
+.cifras div { background: var(--ciruela); border-radius: 18px; padding: 12px 14px; }
+.cifras small { display: block; font-size: 12px; font-weight: 700; color: var(--tinta-2); text-transform: uppercase; letter-spacing: .04em; }
+.cifras b { display: block; font-size: 30px; line-height: 1.15; }
+.cifras span { font-size: 13px; color: var(--tinta-2); }
+@media (min-width: 700px) { .cifras { grid-template-columns: repeat(4, 1fr); } }
