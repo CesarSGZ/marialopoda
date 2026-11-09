@@ -836,9 +836,18 @@ function haceUnAno(lista) {
     return antes ? { ej: e.ej, antes: antes[1], ahora: e.hist[e.hist.length - 1][1] } : null;
   // Más del doble en un año suele ser un cambio de máquina o de forma de apuntar, no progreso real.
   }).filter((c) => c && c.ahora > c.antes * 1.04 && c.ahora < c.antes * 2);
-  if (!candidatos.length) return null;
-  const diaDelAno = Math.floor(hoy.getTime() / 864e5);
-  return candidatos[diaDelAno % candidatos.length];
+  // Además de cada ejercicio, cada músculo frente a otras mujeres: ahí cuenta aunque haya cambiado de máquina.
+  const todas = candidatos.map((c) => ({ texto: `Hace un año, en ${esc(c.ej.toLowerCase())}, movías ${num(c.antes)} kg.`, grande: `Ahora mueves ${num(c.ahora)}.` }))
+    .concat(ultimoAnoMusculos(PESO_REFERENCIA).filter((m) => m.ahora > m.antes).map((m) => ({ texto: `Hace un año superabas al ${m.antes} % de las mujeres en ${esc(m.nombre.toLowerCase())}.`, grande: `Ahora, al ${m.ahora} %.` })));
+  if (!todas.length) return [];
+  // Cada día empieza por una distinta; al tocar, la siguiente.
+  const desde = Math.floor(hoy.getTime() / 864e5) % todas.length;
+  return todas.slice(desde).concat(todas.slice(0, desde));
+}
+function pintarHace(lista) {
+  if (!lista.length) return '';
+  const i = (estado.haceVez || 0) % lista.length, h = lista[i];
+  return `<button type="button" class="hace" data-accion="hace"${lista.length > 1 ? ' aria-label="Ver otra mejora"' : ''}>${h.texto}<span class="gorda">${h.grande}</span>${lista.length > 1 ? `<small>Toca para ver otra · ${i + 1} de ${lista.length}</small>` : ''}</button>`;
 }
 
 function pintarProgreso() {
@@ -865,7 +874,7 @@ function pintarProgreso() {
       <button class="bicho" type="button" aria-label="Saludar a Marialópoda" data-accion="bicho">${svgBicho}</button>
     </div>
     <p class="datos-vida"><b>${semanas} semanas</b> entrenando, <b>${miles(deFuerza.length)} series</b> apuntadas y más de <b>${miles(toneladas)} toneladas</b> movidas.${florecidas ? ` Y <b>${miles(florecidas)} ${florecidas === 1 ? 'flor plantada' : 'flores plantadas'}</b> en tu jardín 🌻` : ''}</p>
-    ${hace ? `<div class="hace">Hace un año, en ${esc(hace.ej.toLowerCase())}, movías ${num(hace.antes)} kg.<span class="gorda">Ahora mueves ${num(hace.ahora)}.</span></div>` : ''}
+    ${pintarHace(hace)}
     ${pintarUltimoAno()}
     <h2 class="gorda seccion">Por músculo</h2>
     <div class="chips" role="group" aria-label="Elegir músculo">
@@ -1219,6 +1228,7 @@ document.addEventListener('click', (ev) => {
   }
   switch (t.dataset.accion) {
     case 'hecha': return serieHecha();
+    case 'hace': { estado.haceVez = (estado.haceVez || 0) + 1; const el = document.querySelector('.hace'); if (el) el.outerHTML = pintarHace(haceUnAno(resumenes().lista)); return undefined; }
     case 'pique': estado.piqueVez = (estado.piqueVez || 0) + 1; return pintar();
     case 'tests': return abrirTests();
     case 'circuito': planHoy().circuito = true; guardarPlan(); estado.ejercicio = null; return pintar();

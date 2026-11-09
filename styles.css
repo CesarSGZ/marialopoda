@@ -202,6 +202,8 @@ section.reposo { background: var(--ciruela); border-radius: 28px; padding: 22px 
 
 .hace { background: var(--amarillo); color: var(--berenjena); border-radius: 22px; padding: 14px 16px; margin-bottom: 20px; font-weight: 600; }
 .hace .gorda { display: block; font-size: 26px; margin-top: 2px; }
+button.hace { display: block; width: 100%; text-align: left; font: inherit; font-weight: 600; }
+.hace small { display: block; margin-top: 6px; font-size: 13px; font-weight: 600; opacity: .7; }
 
 .seccion { font-size: 24px; margin: 24px 0 10px; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
