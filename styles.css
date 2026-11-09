@@ -596,3 +596,13 @@ section.reposo { background: var(--ciruela); border-radius: 28px; padding: 22px 
 .evo-tabla td:first-child { white-space: nowrap; color: var(--tinta-2); }
 .evo-tabla td:last-child { text-align: right; white-space: nowrap; font-weight: 700; }
 .evo-tabla td:nth-child(2) { width: 100%; padding-left: 10px; }
+
+.res.lineas { display: flex; flex-direction: column; gap: 2px; }
+.linea-dato { display: flex; align-items: center; gap: 6px; }
+.linea-dato i { width: 12px; height: 4px; border-radius: 2px; flex: none; }
+.ano-musculos { list-style: none; margin: 0 0 6px; padding: 0; }
+.ano-musculos li { display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 10px; align-items: baseline; padding: 9px 4px; border-bottom: 1px solid var(--ciruela); }
+.ano-musculos b { font-size: 20px; text-align: right; color: var(--amarillo); }
+.ano-musculos .baja b { color: var(--tinta-2); }
+.ano-musculos span { font-weight: 700; }
+.ano-musculos small { display: block; font-weight: 400; color: var(--tinta-2); font-size: 14px; }

@@ -328,3 +328,102 @@ document.addEventListener('click', (ev) => {
   const id = musculoEn(ev, lienzo);
   if (id) mostrarMusculo(id);
 });
+
+// ---------- Cada músculo frente a otras mujeres, a lo largo del tiempo ----------
+// Las máquinas cambian; la comparación con otras mujeres no: así la línea sigue aunque cambie el ejercicio.
+const desplazar = (iso, dias) => new Date(new Date(`${iso}T12:00:00Z`).getTime() + dias * 864e5).toISOString().slice(0, 10);
+const COLOR_LINEA = ['#FF7DB0', '#FFC531', '#7FD1FF', '#9BE38B'];
+
+// Lo mejor de cada ejercicio del músculo entre dos fechas, y la posición media, como en el mapa de fuerza.
+function posicionEntre(m, peso, desde, hasta, soloEstos) {
+  const pruebas = m.ej.filter(([ej]) => !soloEstos || soloEstos.has(ej)).map(([ej, tipo, factor = 1]) => {
+    const repes = DE_REPES.has(tipo);
+    const medir = (f) => (repes ? (+f[F.REPS] <= 40 ? +f[F.REPS] || 0 : 0) : e1rmDe(+f[F.KG] * factor, +f[F.REPS]));
+    const rm = Math.max(0, ...valoresPorFecha(ej, medir).filter((p) => p[0] >= desde && p[0] <= hasta).map((p) => p[1]));
+    return rm ? { ej, ...posicionFuerza(rm, baremoPara(tipo, peso)) } : null;
+  }).filter(Boolean);
+  return pruebas.length ? { por: Math.round(pruebas.reduce((s, p) => s + p.por, 0) / pruebas.length), pruebas } : null;
+}
+
+// El grupo de la pantalla de progreso (Glúteos, Hombros...) en el que se apuntan sus ejercicios.
+function grupoDeMusculo(m) {
+  const cuenta = new Map();
+  for (const f of estado.filas) if (m.ej.some(([ej]) => ej === f[F.EJ])) cuenta.set(f[F.MUSC], (cuenta.get(f[F.MUSC]) || 0) + 1);
+  return [...cuenta.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+}
+
+// Un punto por trimestre con datos: la posición con lo mejor de esos tres meses.
+function historiaMusculo(m, peso) {
+  const trimestres = new Set();
+  for (const f of estado.filas) {
+    if (!m.ej.some(([ej]) => ej === f[F.EJ])) continue;
+    const [a, mes] = f[F.FECHA].split('-');
+    trimestres.add(`${a}-${String(Math.floor((mes - 1) / 3) * 3 + 2).padStart(2, '0')}-15`);
+  }
+  return [...trimestres].sort().map((t) => { const p = posicionEntre(m, peso, desplazar(t, -46), desplazar(t, 46)); return p ? [t, p.por, p] : null; }).filter(Boolean);
+}
+const nombreTrimestre = (iso) => `${Math.ceil(+iso.slice(5, 7) / 3)}.º trimestre de ${iso.slice(0, 4)}`;
+
+function musculosDelGrupo(grupo, peso) {
+  return MUSCULOS.filter((m) => m.ej.length && grupoDeMusculo(m) === grupo).map((m) => ({ ...m, puntos: historiaMusculo(m, peso) })).filter((m) => m.puntos.length);
+}
+
+function pintarGraficaMusculos(grupo) {
+  const caja = $('#caja');
+  const lineas = musculosDelGrupo(grupo, PESO_REFERENCIA).slice(0, COLOR_LINEA.length);
+  if (!lineas.length) { caja.innerHTML = `<h3 class="gorda">${esc(grupo)}</h3><p class="res">Todavía no hay ejercicios de este grupo con los que compararte.</p>`; return; }
+  const todos = lineas.flatMap((l) => l.puntos);
+  const W = 340, H = 210, pi = 34, pd = 12, ps = 10, pa = 24;
+  const t = (iso) => new Date(iso).getTime();
+  const fechas = todos.map((p) => t(p[0])), x0 = Math.min(...fechas), x1 = Math.max(Math.max(...fechas), x0 + 864e5);
+  const X = (iso) => (x1 === x0 ? (pi + W - pd) / 2 : pi + (t(iso) - x0) / (x1 - x0) * (W - pi - pd));
+  const Y = (v) => H - pa - v / 100 * (H - pa - ps);
+  const rejilla = [0, 20, 50, 80, 100].map((v) => `<line x1="${pi}" x2="${W - pd}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--ciruela-2)" stroke-width="1"/><text x="${pi - 6}" y="${Y(v) + 4}" text-anchor="end">${v}</text>`).join('');
+  const a0 = new Date(x0).getUTCFullYear(), a1 = new Date(x1).getUTCFullYear(), anios = [];
+  for (let a = a0 + 1; a <= a1; a++) { const px = X(`${a}-01-01`); if (px > pi + 16 && px < W - pd - 16) anios.push(`<text x="${px}" y="${H - 6}" text-anchor="middle">${a}</text>`); }
+  const resumen = () => lineas.map((l, i) => { const p = l.puntos; return `<span class="linea-dato"><i style="background:${COLOR_LINEA[i]}"></i>${esc(l.nombre)}: <b>${p[p.length - 1][1]} %</b>${p.length > 1 ? ` (empezó en ${p[0][1]} %)` : ''}</span>`; }).join('');
+  caja.innerHTML = `<h3 class="gorda">${esc(grupo)} frente a otras mujeres</h3>
+    <p class="res lineas" id="res">${resumen()}</p>
+    <div class="grafica" id="graf"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(grupo)}: porcentaje de mujeres que superas en cada músculo, trimestre a trimestre">
+      ${rejilla}${anios.join('')}
+      ${lineas.map((l, i) => `<path d="${l.puntos.map((p, k) => `${k ? 'L' : 'M'}${X(p[0]).toFixed(1)} ${Y(p[1]).toFixed(1)}`).join('')}" fill="none" stroke="${COLOR_LINEA[i]}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+        ${l.puntos.map((p) => `<circle cx="${X(p[0]).toFixed(1)}" cy="${Y(p[1]).toFixed(1)}" r="2.6" fill="${COLOR_LINEA[i]}"/>`).join('')}`).join('')}
+      <line id="guia" y1="${ps}" y2="${H - pa}" stroke="var(--tinta-2)" stroke-width="1" visibility="hidden"/>
+    </svg></div>
+    <p class="pie medida-pie">Porcentaje de mujeres de 60 kg que superas, trimestre a trimestre, con lo mejor de esos tres meses (las mismas cuentas que el mapa de fuerza). Sirve para seguir cada músculo aunque cambies de máquina o de ejercicio.</p>`;
+  const graf = $('#graf'), guia = $('#guia'), res = $('#res');
+  const mover = (ev) => {
+    const r = graf.getBoundingClientRect(), px = (ev.clientX - r.left) / r.width * W;
+    let cerca = todos[0];
+    for (const p of todos) if (Math.abs(X(p[0]) - px) < Math.abs(X(cerca[0]) - px)) cerca = p;
+    guia.setAttribute('x1', X(cerca[0])); guia.setAttribute('x2', X(cerca[0])); guia.setAttribute('visibility', 'visible');
+    res.innerHTML = `<b>${nombreTrimestre(cerca[0])}</b>${lineas.map((l, i) => { const p = l.puntos.find((q) => q[0] === cerca[0]); return p ? `<span class="linea-dato"><i style="background:${COLOR_LINEA[i]}"></i>${esc(l.nombre)}: <b>${p[1]} %</b></span>` : ''; }).join('')}`;
+  };
+  const salir = () => { guia.setAttribute('visibility', 'hidden'); res.innerHTML = resumen(); };
+  graf.addEventListener('pointerdown', mover);
+  graf.addEventListener('pointermove', mover);
+  graf.addEventListener('pointerleave', salir);
+  graf.addEventListener('pointerup', (ev) => { if (ev.pointerType !== 'mouse') salir(); });
+  graf.addEventListener('pointercancel', salir);
+}
+
+// Cada músculo hoy frente a hace un año, solo con los ejercicios que hizo en los dos años: una máquina nueva no es progreso.
+function ultimoAnoMusculos(peso) {
+  const hoy = hoyIso(), hace = desplazar(hoy, -365);
+  return MUSCULOS.map((m) => {
+    const antes = posicionEntre(m, peso, desplazar(hace, -365), hace), ahora = posicionEntre(m, peso, desplazar(hoy, -365), hoy);
+    if (!antes || !ahora) return null;
+    const comunes = new Set(antes.pruebas.map((p) => p.ej).filter((ej) => ahora.pruebas.some((p) => p.ej === ej)));
+    if (!comunes.size) return null;
+    const a = posicionEntre(m, peso, desplazar(hace, -365), hace, comunes), b = posicionEntre(m, peso, desplazar(hoy, -365), hoy, comunes);
+    return { nombre: m.nombre, antes: a.por, ahora: b.por };
+  }).filter((x) => x && x.antes !== x.ahora).sort((x, y) => (y.ahora - y.antes) - (x.ahora - x.antes));
+}
+
+function pintarUltimoAno() {
+  const l = ultimoAnoMusculos(PESO_REFERENCIA);
+  if (!l.length) return '';
+  return `<h2 class="gorda seccion">Tu último año frente a otras mujeres</h2>
+    <ul class="ano-musculos">${l.map((m) => `<li class="${m.ahora > m.antes ? 'sube' : 'baja'}"><b>${m.ahora > m.antes ? '+' : '−'}${Math.abs(m.ahora - m.antes)}</b><span>${esc(m.nombre)}<small>Superas al ${m.ahora} %; hace un año, al ${m.antes} %</small></span></li>`).join('')}</ul>
+    <p class="pie">En puntos: cuántas mujeres más superas que hace un año. Solo compara los ejercicios que hiciste en los dos años.</p>`;
+}

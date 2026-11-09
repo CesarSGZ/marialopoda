@@ -844,7 +844,8 @@ function pintarProgreso() {
   const conRecord = lista.filter((e) => e.sube > 0).length;
   if (!estado.musculo || !orden.includes(estado.musculo)) estado.musculo = orden[0];
   const delMusculo = lista.filter((e) => e.musc === estado.musculo).sort((a, b) => b.n - a.n);
-  if (!estado.grafica || !delMusculo.some((e) => e.ej === estado.grafica)) estado.grafica = delMusculo[0].ej;
+  const conLineas = musculosDelGrupo(estado.musculo, PESO_REFERENCIA).length > 0;
+  if (!estado.grafica || (estado.grafica === '*' ? !conLineas : !delMusculo.some((e) => e.ej === estado.grafica))) estado.grafica = conLineas ? '*' : delMusculo[0].ej;
   const hace = haceUnAno(lista);
   const toneladas = totalKg / 1000;
 
@@ -855,12 +856,13 @@ function pintarProgreso() {
     </div>
     <p class="datos-vida"><b>${semanas} semanas</b> entrenando, <b>${miles(deFuerza.length)} series</b> apuntadas y más de <b>${miles(toneladas)} toneladas</b> movidas.${florecidas ? ` Y <b>${miles(florecidas)} ${florecidas === 1 ? 'flor plantada' : 'flores plantadas'}</b> en tu jardín 🌻` : ''}</p>
     ${hace ? `<div class="hace">Hace un año, en ${esc(hace.ej.toLowerCase())}, movías ${num(hace.antes)} kg.<span class="gorda">Ahora mueves ${num(hace.ahora)}.</span></div>` : ''}
+    ${pintarUltimoAno()}
     <h2 class="gorda seccion">Por músculo</h2>
     <div class="chips" role="group" aria-label="Elegir músculo">
       ${orden.map((o) => `<button type="button" data-musculo="${esc(o)}" aria-pressed="${o === estado.musculo}">${esc(o)}</button>`).join('')}
     </div>
     <div class="chips" role="group" aria-label="Elegir ejercicio">
-      ${delMusculo.map((e) => `<button type="button" data-grafica="${esc(e.ej)}" aria-pressed="${e.ej === estado.grafica}">${esc(e.ej)}</button>`).join('')}
+      ${conLineas ? `<button type="button" data-grafica="*" aria-pressed="${estado.grafica === '*'}">Frente a otras</button>` : ''}${delMusculo.map((e) => `<button type="button" data-grafica="${esc(e.ej)}" aria-pressed="${e.ej === estado.grafica}">${esc(e.ej)}</button>`).join('')}
     </div>
     <div class="grafica-caja" id="caja"></div>
     <h2 class="gorda seccion">Mini entreno y caminadora</h2>
@@ -874,7 +876,7 @@ function pintarProgreso() {
     <ul class="subidas" id="subidas"></ul>
     <h2 class="gorda seccion">Tus notas</h2>
     <div id="notas"></div>`;
-  pintarGrafica(lista.find((e) => e.ej === estado.grafica));
+  if (estado.grafica === '*') pintarGraficaMusculos(estado.musculo); else pintarGrafica(lista.find((e) => e.ej === estado.grafica));
   dibujarMaria();
   pintarEvolucionCircuito();
   pintarSemanas();
