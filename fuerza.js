@@ -308,7 +308,8 @@ function pintarCuerpo(peso) {
   const sin = datosFuerza.filter((d) => !d.mejor);
   const estrella = con[0];
   const textoPrueba = (p) => `${esc(p.ej)}: ${p.repes ? `${miles(p.rm)} repes seguidas` : `1RM de unos ${miles(p.rm)} kg${p.mancuerna ? ' por mancuerna' : ''}`}`;
-  return `<div class="cuerpo">
+  return `<button type="button" class="otra test-boton" data-accion="tests">💪 Hacer un test de fuerza</button>
+    <div class="cuerpo">
       ${estrella ? `<p class="estrella">Tu músculo estrella: <b>${esc(estrella.nombre.toLowerCase())}</b>, por encima del ${estrella.mejor.por} %.</p>` : ''}
       <div class="maria-marco"><canvas id="maria" width="${PX_W * 2 + PX_HUECO}" height="${PX_H}" role="img" aria-label="María de frente y de espaldas, con un punto de color en cada músculo según su nivel. Toca uno para ver su dato; el detalle está en la lista de abajo."></canvas>
         <div class="maria-pies"><span>Delante</span><span>Detrás</span></div></div>

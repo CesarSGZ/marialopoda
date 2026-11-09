@@ -606,3 +606,12 @@ section.reposo { background: var(--ciruela); border-radius: 28px; padding: 22px 
 .ano-musculos .baja b { color: var(--tinta-2); }
 .ano-musculos span { font-weight: 700; }
 .ano-musculos small { display: block; font-weight: 400; color: var(--tinta-2); font-size: 14px; }
+
+.pique { display: block; width: 100%; text-align: left; margin: 0 0 12px; padding: 11px 14px; border-radius: 18px; background: var(--ciruela); color: var(--tinta); font-weight: 600; font-size: 15px; line-height: 1.35; box-shadow: inset 4px 0 0 var(--amarillo); }
+.pique small { display: block; font-size: 12px; font-weight: 700; color: var(--amarillo); letter-spacing: .02em; margin-bottom: 2px; }
+.test-aviso { margin: 8px 0 4px; padding: 10px 12px; border-radius: 14px; border: 2px dashed var(--amarillo); font-size: 14px; color: var(--tinta-2); }
+.test-aviso b { color: var(--amarillo); }
+.test-musculo { font-size: 16px; margin: 14px 0 4px; }
+.test-musculo small { font-weight: 400; color: var(--tinta-2); font-size: 13px; }
+.test-boton { display: block; width: 100%; margin: 0 0 14px; min-height: 52px; border-radius: 18px; background: var(--amarillo); color: var(--berenjena); font-weight: 700; font-size: 16px; }
+.opciones button small { display: block; font-weight: 400; font-size: 13px; color: var(--tinta-2); }

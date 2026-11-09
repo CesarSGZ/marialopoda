@@ -47,6 +47,7 @@ const estado = {
   borrador: {},      // { 'ejercicio': { kg, reps, serie } }
   plan: leer('plan', null),
   medidas: leer('medidas', {}),
+  pique: leer('pique', null),
   serieElegida: {},
   verMas: false,
   editando: null,
@@ -81,6 +82,7 @@ const filasHoy = (d, ej) => estado.filas.filter((f) => f[F.FECHA] === hoyIso() &
 // Lo que se cambia solo para hoy (saltos, orden, ejercicios) y caduca al cambiar de fecha.
 function planHoy() {
   if (!estado.plan || estado.plan.fecha !== hoyIso()) estado.plan = { fecha: hoyIso(), saltos: {}, orden: {}, cambios: {} };
+  estado.plan.extras = estado.plan.extras || {};
   return estado.plan;
 }
 const guardarPlan = () => guardar('plan', estado.plan);
@@ -99,6 +101,9 @@ function ejerciciosDia(d) {
     }
     return copia;
   });
+  // Lo añadido solo para hoy, como un test de fuerza.
+  const nombre = (lista[0] || estado.rutina.find((r) => r.dia === d) || {}).nombre || '';
+  for (const x of plan.extras[d] || []) if (!lista.some((y) => y.ejercicio === x.ejercicio)) lista.push({ dia: d, nombre, orden: 99, ...x, original: x.ejercicio });
   const orden = plan.orden[d];
   if (orden) lista.sort((a, b) => orden.indexOf(a.original) - orden.indexOf(b.original));
   return lista;
@@ -332,6 +337,7 @@ function pintarHoy() {
       <p class="saludo">${esc(estado.saludo)}</p>
       <button class="bicho" type="button" aria-label="Saludar a Marialópoda" data-accion="bicho">${svgBicho}</button>
     </div>
+    ${pintarPique()}
     <h1 class="gorda titulo-dia">Día ${estado.dia}, ${lista.length && lista[0].nombre === 'Mini entreno' ? 'mini entreno' : esc(dia.nombre.toLowerCase())}</h1>
     <div class="dias" role="group" aria-label="Elegir día">
       ${dias.map((d) => `<button type="button" data-dia="${d.dia}" aria-pressed="${d.dia === estado.dia}"><b>${d.dia}</b>${esc(d.nombre)}</button>`).join('')}
@@ -438,6 +444,7 @@ function pintarFoco(r) {
       <h2 class="gorda">${esc(r.ejercicio)}</h2>
       ${r.circuito ? '' : '<button type="button" class="cambiar" data-accion="cambiar">Cambiar</button>'}
     </div>
+    ${bannerTest(r)}
     ${r.ejercicio !== r.original ? `<p class="ultima">Hoy en lugar de ${esc(r.original.toLowerCase())}.</p>` : ''}
     ${pintarAnteriores(r)}
     <div class="bajo-antes">
@@ -584,6 +591,7 @@ function serieHecha() {
     : marca.kg > 0 && (kg > marca.kg || (kg === marca.kg && reps > marca.reps));
   delete estado.serieElegida[r.ejercicio];
   const terminado = seriesDe(r).completo;
+  const test = r.test && terminado ? resultadoTest(r) : '';
   const rival = rivalDe(r.ejercicio, hoyIso());
   const adelanta = rival && e1rmDe(kg, reps) > rival.valor && !estado.dueloCelebrado[r.ejercicio];
   if (adelanta) estado.dueloCelebrado[r.ejercicio] = true;
@@ -595,7 +603,8 @@ function serieHecha() {
   pedirPantalla();
   pintar();
   flotar(florDe(o.id), boton.left + boton.width / 2, boton.top);
-  if (esRecord) return celebrar(r.ejercicio, kg, reps, kg > marca.kg);
+  if (esRecord) { celebrar(r.ejercicio, kg, reps, kg > marca.kg); if (test) mostrarCarta(test); return undefined; }
+  if (test) { mostrarCarta(test); return undefined; }
   const apuntadas = estado.filas.filter((f) => f[F.ORIGEN] === 'app').length;
   if (seg && mejorSeg && seg < mejorSeg) { decir(`¡Tu mejor tiempo en ${miles(reps)} m! ${aTiempo(seg)}`); lluvia(['🌻', '🌸', '✨'], 24); }
   else if (finVuelta) decir(azar(FRASES.circuito));
@@ -651,6 +660,7 @@ function terminar() {
     <button type="button" class="otra" data-accion="caminadora">🚶‍♀️ ${minCamina ? 'Añadir más caminadora' : '¿Has hecho caminadora?'}</button>
     ${pintarJardin('jardin final')}
     <p>🌳 Tu árbol de esta semana ya lleva ${semana} ${semana === 1 ? 'entreno' : 'entrenos'}.</p>
+    ${lineaSemanaPique()}
     ${ganados ? `<p>🥊 Has ido por delante de tu yo del pasado en ${ganados} ${ganados === 1 ? 'ejercicio' : 'ejercicios'}.</p>` : ''}
     <p>${semana >= objetivo ? esc(azar(FRASES.semana)) : `Llevas ${semana} de ${objetivo} entrenos esta semana.`}</p>
     <p class="cesar">${esc(azar(FRASES.cesar))}<br>César</p>
@@ -1191,6 +1201,7 @@ document.addEventListener('click', (ev) => {
   if (t.dataset.subir) { estado.borrador[estado.ejercicio].kg = +t.dataset.subir; return pintar(); }
   if (t.dataset.evolucion) { estado.evolucion = t.dataset.evolucion; return pintarEvolucionCircuito(); }
   if (t.dataset.caminata) return abrirCaminadora(t.dataset.caminata);
+  if (t.dataset.test) return empezarTest(t.dataset.test);
   if (t.dataset.cam) return pasoCaminadora(t.dataset.cam, +t.dataset.v);
   if (t.dataset.pasoMedida) {
     guardarBorrador();
@@ -1208,6 +1219,8 @@ document.addEventListener('click', (ev) => {
   }
   switch (t.dataset.accion) {
     case 'hecha': return serieHecha();
+    case 'pique': estado.piqueVez = (estado.piqueVez || 0) + 1; return pintar();
+    case 'tests': return abrirTests();
     case 'circuito': planHoy().circuito = true; guardarPlan(); estado.ejercicio = null; return pintar();
     case 'sin-circuito': planHoy().circuito = false; guardarPlan(); estado.ejercicio = null; return pintar();
     case 'caminadora': return abrirCaminadora();
@@ -1265,7 +1278,7 @@ async function arrancar() {
     await subirCola();
     const ok = await descargar();
     if (estado.errorClave) { estado.codigo = null; guardar('codigo', null); return pintarBienvenida(); }
-    if (ok) { guardarBorrador(); const activo = document.activeElement; if (!activo || !activo.matches('input, textarea')) pintar(); comprobarLogros(); }
+    if (ok) { guardarBorrador(); const activo = document.activeElement; if (!activo || !activo.matches('input, textarea')) pintar(); comprobarLogros(); traerPique(); }
   } catch (e) { /* sin red: se usa lo guardado */ }
   return undefined;
 }
