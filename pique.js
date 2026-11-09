@@ -1,6 +1,6 @@
 'use strict';
-// ---------- El pique con César y los tests de fuerza ----------
-// De César solo llega un resumen: días entrenados, si ha entrenado hoy, marcas que ha superado frente a sí mismo
+// ---------- El pique con Cesarlópodo y los tests de fuerza ----------
+// De Cesarlópodo solo llega un resumen: días entrenados, si ha entrenado hoy, marcas que ha superado frente a sí mismo
 // y kilómetros de caminadora. Los pesos de dos personas no se comparan: cada uno compite con su yo del pasado.
 
 const PIQUE_URL = 'https://cesar-solla.pages.dev/api/pique';
@@ -19,7 +19,7 @@ async function traerPique() {
   } catch (e) { /* sin red o sin conectar todavía: no sale el pique */ }
 }
 
-// Lo mismo que se cuenta de César, calculado aquí con tus filas (así lo de hace un minuto ya cuenta).
+// Lo mismo que se cuenta de Cesarlópodo, calculado aquí con tus filas (así lo de hace un minuto ya cuenta).
 function miResumen() {
   const hoy = hoyIso(), lunes = lunesDe(hoy), desde = desplazar(hoy, -13);
   const pesas = estado.filas.filter((f) => f[F.EJ] !== CAMINADORA && f[F.FECHA] <= hoy);
@@ -47,30 +47,30 @@ const entrenos = (n) => (n === 1 ? '1 entreno' : `${n} entrenos`);
 function lineasPique() {
   const C = estado.pique, yo = miResumen(), out = [];
   if (!C || C.today !== hoyIso()) return out;
-  if (C.trainedToday && !yo.entrenoHoy) out.push('César ya ha entrenado hoy. Dice que te espera en el podio. 😏');
+  if (C.trainedToday && !yo.entrenoHoy) out.push('Cesarlópodo ya ha entrenado hoy. Dice que te espera en el podio. 😏');
   if (C.trainedToday && yo.entrenoHoy) out.push('Hoy habéis entrenado los dos. Equipo invencible. 💪');
-  if (!C.trainedToday && yo.entrenoHoy) out.push('Tú ya has entrenado y César todavía no. Recuérdaselo. 😇');
-  if (C.week > yo.semana) out.push(`César lleva ${entrenos(C.week)} esta semana y tú ${yo.semana}. ¿Se lo vas a permitir?`);
-  else if (C.week && C.week === yo.semana) out.push(`Empate con César: ${entrenos(C.week)} cada uno esta semana.`);
-  else if (yo.semana > C.week) out.push(`Vas ganando a César esta semana: ${yo.semana} a ${C.week}. 🏆`);
+  if (!C.trainedToday && yo.entrenoHoy) out.push('Tú ya has entrenado y Cesarlópodo todavía no. Recuérdaselo. 😇');
+  if (C.week > yo.semana) out.push(`Cesarlópodo lleva ${entrenos(C.week)} esta semana y tú ${yo.semana}. ¿Se lo vas a permitir?`);
+  else if (C.week && C.week === yo.semana) out.push(`Empate con Cesarlópodo: ${entrenos(C.week)} cada uno esta semana.`);
+  else if (yo.semana > C.week) out.push(`Vas ganando a Cesarlópodo esta semana: ${yo.semana} a ${C.week}. 🏆`);
   const rec = C.records && C.records[0];
-  if (rec) out.push(`César se ha superado en ${rec.ejercicio}: ${rec.reps} × ${num(rec.kg)} kg, un ${num(rec.mejora)} % más que su mejor marca. Te toca superarte a ti.`);
+  if (rec) out.push(`Cesarlópodo se ha superado en ${rec.ejercicio}: ${rec.reps} × ${num(rec.kg)} kg, un ${num(rec.mejora)} % más que su mejor marca. Te toca superarte a ti.`);
   const suyos = (C.records || []).length;
-  if (suyos || yo.records) out.push(`Marcas superadas estas dos semanas: tú ${yo.records}, César ${suyos}.${yo.records > suyos ? ' Vas ganando. 🌻' : ''}`);
-  if (C.walkedToday && !yo.caminoHoy) out.push('César ya ha hecho caminadora hoy. 🚶');
-  if (C.walkWeek || yo.km) out.push(yo.km > C.walkWeek ? `Caminadora esta semana: tú ${num(yo.km)} km, César ${num(C.walkWeek)}. Las orugas caminan más. 🐛` : `César lleva ${num(C.walkWeek)} km de caminadora esta semana y tú ${num(yo.km)}.`);
-  if (yo.racha > C.streak && yo.racha >= 2) out.push(`Llevas ${yo.racha} semanas seguidas entrenando; César, ${C.streak}. 😎`);
-  else if (C.streak >= 3) out.push(`César lleva ${C.streak} semanas seguidas entrenando. Tú, ${yo.racha}.`);
-  if (!C.trainedToday && C.lastDay && new Date(hoyIso()) - new Date(C.lastDay) >= 4 * 864e5) out.push(`César no entrena desde el ${fechaCorta(C.lastDay).slice(0, -3)}. Pídele explicaciones.`);
+  if (suyos || yo.records) out.push(`Marcas superadas estas dos semanas: tú ${yo.records}, Cesarlópodo ${suyos}.${yo.records > suyos ? ' Vas ganando. 🌻' : ''}`);
+  if (C.walkedToday && !yo.caminoHoy) out.push('Cesarlópodo ya ha hecho caminadora hoy. 🚶');
+  if (C.walkWeek || yo.km) out.push(yo.km > C.walkWeek ? `Caminadora esta semana: tú ${num(yo.km)} km, Cesarlópodo ${num(C.walkWeek)}. Las orugas caminan más. 🐛` : `Cesarlópodo lleva ${num(C.walkWeek)} km de caminadora esta semana y tú ${num(yo.km)}.`);
+  if (yo.racha > C.streak && yo.racha >= 2) out.push(`Llevas ${yo.racha} semanas seguidas entrenando; Cesarlópodo, ${C.streak}. 😎`);
+  else if (C.streak >= 3) out.push(`Cesarlópodo lleva ${C.streak} semanas seguidas entrenando. Tú, ${yo.racha}.`);
+  if (!C.trainedToday && C.lastDay && new Date(hoyIso()) - new Date(C.lastDay) >= 4 * 864e5) out.push(`Cesarlópodo no entrena desde el ${fechaCorta(C.lastDay).slice(0, -3)}. Pídele explicaciones.`);
   return out;
 }
 function pintarPique() {
   const l = lineasPique();
   if (!l.length) return '';
   estado.piqueVez = (estado.piqueVez === undefined ? Math.floor(Math.random() * l.length) : estado.piqueVez) % l.length;
-  return `<button type="button" class="pique" data-accion="pique" aria-label="Otro pique con César"><small>Pique con César</small>${esc(l[estado.piqueVez])}</button>`;
+  return `<button type="button" class="pique" data-accion="pique" aria-label="Otro pique con Cesarlópodo"><small>Pique con Cesarlópodo</small>${esc(l[estado.piqueVez])}</button>`;
 }
-const lineaSemanaPique = () => (estado.pique && estado.pique.today === hoyIso() ? `<p>🥊 Esta semana: tú ${entrenos(miResumen().semana)}, César ${entrenos(estado.pique.week)}.</p>` : '');
+const lineaSemanaPique = () => (estado.pique && estado.pique.today === hoyIso() ? `<p>🥊 Esta semana: tú ${entrenos(miResumen().semana)}, Cesarlópodo ${entrenos(estado.pique.week)}.</p>` : '');
 
 // ---------- Tests de fuerza ----------
 // Ejercicios que pesan igual en cualquier gimnasio (barra, mancuernas, polea), para saber de verdad dónde estás.

@@ -663,7 +663,7 @@ function terminar() {
     ${lineaSemanaPique()}
     ${ganados ? `<p>🥊 Has ido por delante de tu yo del pasado en ${ganados} ${ganados === 1 ? 'ejercicio' : 'ejercicios'}.</p>` : ''}
     <p>${semana >= objetivo ? esc(azar(FRASES.semana)) : `Llevas ${semana} de ${objetivo} entrenos esta semana.`}</p>
-    <p class="cesar">${esc(azar(FRASES.cesar))}<br>César</p>
+    <p class="cesar">${esc(azar(FRASES.cesar))}<br>Cesarlópodo</p>
     <button type="button" class="principal" data-accion="cerrar-fin">Hasta la próxima</button>
   </div>`;
   c.hidden = false;
@@ -1107,9 +1107,9 @@ function pintarBienvenida() {
     <h1 class="gorda">Hola, Marialópoda</h1>
     <p>Aquí vas a apuntar tus pesos, la más linda y la más fuerte.</p>
     ${standalone ? '' : `<ol><li>Toca el botón de compartir de Safari.</li><li>Elige "Añadir a pantalla de inicio".</li><li>Abre la app desde el icono nuevo y pega ahí tu código.</li></ol>`}
-    <label for="cod">Tu código (te lo da César)</label>
+    <label for="cod">Tu código (te lo da Cesarlópodo)</label>
     <textarea id="cod" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
-    ${estado.errorClave ? '<p class="error">Ese código no funciona. Pídele a César uno nuevo.</p>' : ''}
+    ${estado.errorClave ? '<p class="error">Ese código no funciona. Pídele a Cesarlópodo uno nuevo.</p>' : ''}
     <button type="button" class="hecha" data-accion="emparejar">Entrar</button>
   </div>`;
 }

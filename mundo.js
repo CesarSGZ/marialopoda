@@ -249,7 +249,7 @@ function cartaCumple(anio) {
   return `<div class="tarjeta" role="dialog" aria-label="Feliz cumpleaños">
     <div class="bicho salta">${svgBicho}</div><h2 class="gorda">¡Feliz cumpleaños, Marialópoda!</h2>
     <p class="cifra">${edad} años</p><p>${esc(azar(FRASES.cumple))}</p>
-    <p class="cesar">${esc(azar(FRASES.cumpleCesar))}<br>César</p>
+    <p class="cesar">${esc(azar(FRASES.cumpleCesar))}<br>Cesarlópodo</p>
     <button type="button" class="principal" data-accion="cerrar">Gracias, oruga</button></div>`;
 }
 function cartaLogro(titulo, grande, texto) {
