@@ -603,6 +603,10 @@ function serieHecha() {
   pedirPantalla();
   pintar();
   flotar(florDe(o.id), boton.left + boton.width / 2, boton.top);
+  sonar(esRecord ? 'record' : terminado ? 'ejercicio' : 'serie');
+  vibrar(esRecord || terminado ? [18, 50, 28] : 14);
+  brotar(document.querySelector(`.series [data-editar="${CSS.escape(o.id)}"]`));
+  brotar(document.querySelector('[data-accion="hecha"]'));
   if (esRecord) { celebrar(r.ejercicio, kg, reps, kg > marca.kg); if (test) mostrarCarta(test); return undefined; }
   if (test) { mostrarCarta(test); return undefined; }
   const apuntadas = estado.filas.filter((f) => f[F.ORIGEN] === 'app').length;
@@ -633,6 +637,27 @@ function celebrar(ej, kg, reps, porPeso) {
   pasearSalchicha();
 }
 
+// Lo que celebrar al acabar: récords de hoy, frente a la última vez de este día y cuánto ha durado.
+const volumenDe = (filas) => filas.reduce((s, f) => s + (+f[F.KG] || 0) * (+f[F.REPS] || 0), 0);
+const horaDeId = (id) => (/^a[0-9a-z]{6,}$/.test(String(id)) ? parseInt(String(id).slice(1, -5), 36) : null);
+function logrosDeHoy(hoy) {
+  const nombres = [...new Set(hoy.map((f) => f[F.EJ]))].filter((n) => !SIN_LASTRE[n] && !ES_MEDIDO.has(n));
+  const records = nombres.filter((n) => {
+    const mejor = (filas) => Math.max(0, ...filas.map((f) => e1rmDe(+f[F.KG], +f[F.REPS])));
+    const antes = mejor(estado.filas.filter((f) => f[F.EJ] === n && f[F.FECHA] < hoyIso()));
+    return antes > 0 && mejor(hoy.filter((f) => f[F.EJ] === n)) > antes;
+  });
+  const dia = String(estado.dia);
+  const previas = estado.filas.filter((f) => f[F.FECHA] < hoyIso() && String(f[F.DIA]) === dia && f[F.EJ] !== CAMINADORA);
+  const ultima = previas.reduce((m, f) => (f[F.FECHA] > m ? f[F.FECHA] : m), '');
+  const antes = ultima ? volumenDe(previas.filter((f) => f[F.FECHA] === ultima)) : 0, ahora = volumenDe(hoy);
+  const cambio = antes ? ahora / antes - 1 : null;
+  const horas = hoy.map((f) => horaDeId(f[F.ID])).filter(Boolean).sort((a, b) => a - b);
+  const minutos = horas.length >= 2 ? Math.round((horas[horas.length - 1] - horas[0]) / 6e4) + 2 : null;
+  return { records, ultima, // Solo cuando sube: un entreno a medias no tiene por qué amargar el resumen. Más del doble suele ser que la última vez se apuntó a medias.
+    cambio: cambio !== null && cambio >= 0.03 && cambio <= 1 ? cambio : null, minutos: minutos && minutos <= 300 ? minutos : null };
+}
+
 function terminar() {
   const hoy = estado.filas.filter((f) => f[F.FECHA] === hoyIso() && f[F.EJ] !== CAMINADORA);
   const total = hoy.reduce((s, f) => s + (+f[F.KG]) * (+f[F.REPS] || 0), 0);
@@ -649,12 +674,16 @@ function terminar() {
   const semana = entrenosDeEstaSemana();
   const objetivo = objetivoSemanal();
   const ganados = duelosGanadosHoy(hoyIso());
+  const logros = logrosDeHoy(hoy);
   const c = $('#capa');
   c.innerHTML = `<div class="tarjeta" role="dialog" aria-label="Entreno terminado">
     <div class="bicho salta">${svgBicho}</div>
     <h2 class="gorda">${esc(azar(FRASES.fin))}</h2>
     <p class="cifra">${total ? `${miles(total)} kg` : `${miles(metros)} m`}</p>
     ${total ? `<p>Eso es lo que has movido hoy: ${equivale}, en ${hoy.length} ${hoy.length === 1 ? 'serie' : 'series'} y ${ejercicios} ${ejercicios === 1 ? 'ejercicio' : 'ejercicios'}.</p>` : ''}
+    ${logros.minutos ? `<p>⏱️ ${logros.minutos} minutos de entreno.</p>` : ''}
+    ${logros.records.length ? `<p class="logro">🏆 ${logros.records.length === 1 ? `Récord en ${esc(logros.records[0].toLowerCase())}` : `${logros.records.length} récords: ${esc(logros.records.slice(0, 3).join(', ').toLowerCase())}${logros.records.length > 3 ? '…' : ''}`}. ¡Más fuerte que nunca!</p>` : ''}
+    ${logros.cambio !== null ? `<p class="logro">📈 Un ${num(Math.round(logros.cambio * 100))} % más de peso movido que la última vez que hiciste este día (${fechaCorta(logros.ultima)}). ¡Subiendo!</p>` : ''}
     ${metros ? `<p>🚣 ${miles(metros)} metros entre remo y esquí.</p>` : ''}
     ${minCamina ? `<p>🚶‍♀️ ${num(minCamina)} min de caminadora, ${textoKm(kmCamina)}.</p>` : ''}
     <button type="button" class="otra" data-accion="caminadora">🚶‍♀️ ${minCamina ? 'Añadir más caminadora' : '¿Has hecho caminadora?'}</button>
@@ -668,7 +697,9 @@ function terminar() {
   </div>`;
   c.hidden = false;
   confeti();
-  lluvia(semana >= objetivo ? ['🌻', '🌻', '🌻', '🏅', '🌸'] : ['🌸', '🌼', '🌷', '🌻'], 40);
+  sonar('fin');
+  vibrar([20, 60, 20, 60, 40]);
+  lluvia(semana >= objetivo ?['🌻', '🌻', '🌻', '🏅', '🌸'] : ['🌸', '🌼', '🌷', '🌻'], 40);
   pasearSalchicha();
   pararDescanso();
   soltarPantalla();
@@ -790,6 +821,36 @@ function pitar() {
   } catch (e) { /* sin sonido no pasa nada: el aviso visual sigue */ }
 }
 
+// ---------- Premios pequeños: un tintineo y un toque al apuntar; más largo al acabar un ejercicio o el entreno ----------
+const NOTAS = {
+  serie: [[880, 0], [1319, 0.07]],
+  ejercicio: [[784, 0], [988, 0.08], [1175, 0.16], [1568, 0.25]],
+  record: [[880, 0], [1109, 0.08], [1319, 0.16], [1760, 0.26], [2217, 0.36]],
+  fin: [[523, 0], [659, 0.13], [784, 0.26], [1047, 0.4], [880, 0.56], [1047, 0.7], [1319, 0.86]]
+};
+function sonar(tipo) {
+  try {
+    audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+    if (audio.state === 'suspended') audio.resume();
+    const ahora = audio.currentTime, largo = tipo === 'fin' ? 0.5 : 0.3;
+    NOTAS[tipo].forEach(([f, t]) => {
+      const o = audio.createOscillator(), g = audio.createGain();
+      o.type = 'triangle'; o.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, ahora + t);
+      g.gain.exponentialRampToValueAtTime(0.13, ahora + t + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, ahora + t + largo);
+      o.connect(g).connect(audio.destination);
+      o.start(ahora + t); o.stop(ahora + t + largo + 0.02);
+    });
+  } catch (e) { /* con el móvil en silencio queda lo visual */ }
+}
+const vibrar = (patron) => { try { if (navigator.vibrate) navigator.vibrate(patron); } catch (e) { /* iOS no vibra desde la web */ } };
+function brotar(nodo) {
+  if (!nodo || SIN_MOVIMIENTO()) return;
+  nodo.classList.remove('brota'); void nodo.offsetWidth; nodo.classList.add('brota');
+  nodo.addEventListener('animationend', () => nodo.classList.remove('brota'), { once: true });
+}
+
 // ---------- Pantalla encendida ----------
 let cerrojoPantalla = null;
 async function pedirPantalla() {
@@ -859,6 +920,21 @@ function pintarCifras() {
     ${basicos.map((b) => `<div><small>${esc(b.ej)}</small><b class="gorda">${miles(b.mejor)}</b><span>1RM, desde ${miles(b.primero)} kg</span></div>`).join('')}
   </div>`;
 }
+// Los grupos que más esperan, de lo entrenado en el último medio año. Al tocar uno se abre su gráfica.
+function pintarSinEntrenar(orden) {
+  const ultima = new Map();
+  for (const f of estado.filas) {
+    const m = f[F.MUSC];
+    if (!m || m === 'Cardio' || f[F.EJ] === CAMINADORA || f[F.FECHA] > hoyIso()) continue;
+    if (!ultima.has(m) || f[F.FECHA] > ultima.get(m)) ultima.set(m, f[F.FECHA]);
+  }
+  const dias = (iso) => Math.round((new Date(`${hoyIso()}T12:00:00Z`) - new Date(`${iso}T12:00:00Z`)) / 864e5);
+  const lista = [...ultima].map(([m, iso]) => ({ m, dias: dias(iso) })).filter((x) => x.dias <= 182).sort((a, b) => b.dias - a.dias).slice(0, 6);
+  if (!lista.length) return '';
+  const cuando = (d) => (d === 0 ? 'hoy' : d === 1 ? 'ayer' : `hace ${d} días`);
+  return `<h2 class="gorda seccion">Lo que más tiempo llevas sin entrenar</h2>
+    <div class="sin-entrenar">${lista.map((x) => `<button type="button" class="${x.dias >= 14 ? 'mucho' : x.dias >= 7 ? 'algo' : ''}"${orden.includes(x.m) ? ` data-musculo="${esc(x.m)}" data-ir-grafica="1"` : ' disabled'}><b>${x.dias}</b><span>${esc(x.m)}<small>${cuando(x.dias)}</small></span></button>`).join('')}</div>`;
+}
 function pintarHace(lista) {
   if (!lista.length) return '';
   const i = (estado.haceVez || 0) % lista.length, h = lista[i];
@@ -891,6 +967,7 @@ function pintarProgreso() {
     <p class="datos-vida"><b>${semanas} semanas</b> entrenando, <b>${miles(deFuerza.length)} series</b> apuntadas y más de <b>${miles(toneladas)} toneladas</b> movidas.${florecidas ? ` Y <b>${miles(florecidas)} ${florecidas === 1 ? 'flor plantada' : 'flores plantadas'}</b> en tu jardín 🌻` : ''}</p>
     ${pintarCifras()}
     ${pintarHace(hace)}
+    ${pintarSinEntrenar(orden)}
     ${pintarUltimoAno()}
     <h2 class="gorda seccion">Por músculo</h2>
     <div class="chips" role="group" aria-label="Elegir músculo">
@@ -1213,7 +1290,11 @@ document.addEventListener('click', (ev) => {
   if (t.dataset.ver) { guardarBorrador(); estado.vista = t.dataset.ver; $('#pantalla').scrollTo(0, 0); return pintar(); }
   if (t.dataset.dia) { guardarBorrador(); estado.dia = +t.dataset.dia; estado.ejercicio = null; return pintar(); }
   if (t.dataset.ej) { guardarBorrador(); estado.ejercicio = t.dataset.ej; $('#pantalla').scrollTo({ top: 0, behavior: 'smooth' }); return pintar(); }
-  if (t.dataset.musculo) { estado.musculo = t.dataset.musculo; estado.grafica = null; return pintar(); }
+  if (t.dataset.musculo) {
+    estado.musculo = t.dataset.musculo; estado.grafica = null; pintar();
+    if (t.dataset.irGrafica) $('#caja')?.scrollIntoView({ behavior: SIN_MOVIMIENTO() ? 'auto' : 'smooth', block: 'center' });
+    return undefined;
+  }
   if (t.dataset.grafica) { estado.grafica = t.dataset.grafica; return pintar(); }
   if (t.dataset.medida) { estado.medidas = { ...(estado.medidas || {}), [estado.grafica]: t.dataset.medida }; guardar('medidas', estado.medidas); return pintarGrafica(resumenes().lista.find((x) => x.ej === estado.grafica)); }
   if (t.dataset.musculoMapa) return mostrarMusculo(t.dataset.musculoMapa);
