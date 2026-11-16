@@ -48,6 +48,7 @@ const estado = {
   plan: leer('plan', null),
   medidas: leer('medidas', {}),
   pique: leer('pique', null),
+  carlitos: leer('carlitos', null),
   serieElegida: {},
   verMas: false,
   editando: null,
@@ -338,6 +339,7 @@ function pintarHoy() {
       <button class="bicho" type="button" aria-label="Saludar a Marialópoda" data-accion="bicho">${svgBicho}</button>
     </div>
     ${pintarPique()}
+    ${typeof Carlitos !== 'undefined' ? Carlitos.tira(estado.carlitos, 'maria') : ''}
     <h1 class="gorda titulo-dia">Día ${estado.dia}, ${lista.length && lista[0].nombre === 'Mini entreno' ? 'mini entreno' : esc(dia.nombre.toLowerCase())}</h1>
     <div class="dias" role="group" aria-label="Elegir día">
       ${dias.map((d) => `<button type="button" data-dia="${d.dia}" aria-pressed="${d.dia === estado.dia}"><b>${d.dia}</b>${esc(d.nombre)}</button>`).join('')}
@@ -675,6 +677,7 @@ function terminar() {
   const objetivo = objetivoSemanal();
   const ganados = duelosGanadosHoy(hoyIso());
   const logros = logrosDeHoy(hoy);
+  const vale = valeDeHoy();
   const c = $('#capa');
   c.innerHTML = `<div class="tarjeta" role="dialog" aria-label="Entreno terminado">
     <div class="bicho salta">${svgBicho}</div>
@@ -691,7 +694,9 @@ function terminar() {
     <p>🌳 Tu árbol de esta semana ya lleva ${semana} ${semana === 1 ? 'entreno' : 'entrenos'}.</p>
     ${lineaSemanaPique()}
     ${ganados ? `<p>🥊 Has ido por delante de tu yo del pasado en ${ganados} ${ganados === 1 ? 'ejercicio' : 'ejercicios'}.</p>` : ''}
-    <p>${semana >= objetivo ? esc(azar(FRASES.semana)) : `Llevas ${semana} de ${objetivo} entrenos esta semana.`}</p>
+    ${semana >= objetivo ? `<p>${esc(azar(FRASES.semana))}</p>` : ''}
+    <p>🐶 ${esc(azar(FRASES.carlitosFin))}</p>
+    ${vale ? `<div class="vale">🎟️ Carlitos te trae un vale en la boca: ${esc(vale)}<small>Lo tienes guardado en Carlitos. Enséñaselo a Cesarlópodo para canjearlo.</small></div>` : ''}
     <p class="cesar">${esc(azar(FRASES.cesar))}<br>Cesarlópodo</p>
     <button type="button" class="principal" data-accion="cerrar-fin">Hasta la próxima</button>
   </div>`;
@@ -704,6 +709,34 @@ function terminar() {
   pararDescanso();
   soltarPantalla();
   comprobarLogros();
+  cartaDeLaSemana();
+  setTimeout(traerPique, 5000);
+}
+
+// ---------- Sorpresas al terminar ----------
+// A veces Carlitos trae un vale (como mucho uno por semana), que también ve Cesarlópodo para canjearlo.
+function valeDeHoy() {
+  const lunes = lunesDe(hoyIso());
+  if (leer('valeSemana', '') === lunes || Math.random() > 0.35) return null;
+  if (((estado.carlitos && estado.carlitos.vales) || []).some((v) => v.who === 'maria' && v.d >= lunes)) return null;
+  const vistos = leer('valesVistos', []), quedan = FRASES.vales.filter((v) => !vistos.includes(v));
+  const texto = azar(quedan.length ? quedan : FRASES.vales);
+  guardar('valeSemana', lunes);
+  guardar('valesVistos', (quedan.length ? vistos : []).concat(texto));
+  enviarCarlitos({ type: 'vale', text: texto }).catch(() => guardar('valePendiente', texto));
+  return texto;
+}
+// Una carta de Cesarlópodo cada semana, con el primer entreno: van saliendo en orden y no se repiten hasta acabarse.
+function cartaDeLaSemana() {
+  const lunes = lunesDe(hoyIso());
+  if (leer('cartaSemana', '') === lunes) return;
+  guardar('cartaSemana', lunes);
+  const n = leer('cartasLeidas', 0), texto = FRASES.cartas[n % FRASES.cartas.length];
+  guardar('cartasLeidas', n + 1);
+  mostrarCarta(`<div class="tarjeta" role="dialog" aria-label="Carta de Cesarlópodo">
+    <div class="bicho salta">${svgBicho}</div><h2 class="gorda">Carta de la semana</h2>
+    <p class="carta-cesar">${esc(texto)}</p><p class="cesar">Cesarlópodo</p>
+    <button type="button" class="principal" data-accion="cerrar">Guardarla en el corazón 💗</button></div>`);
 }
 
 function entrenosDeEstaSemana() {
@@ -938,7 +971,7 @@ function pintarSinEntrenar(orden) {
 function pintarHace(lista) {
   if (!lista.length) return '';
   const i = (estado.haceVez || 0) % lista.length, h = lista[i];
-  return `<button type="button" class="hace" data-accion="hace"${lista.length > 1 ? ' aria-label="Ver otra mejora"' : ''}>${h.texto}<span class="gorda">${h.grande}</span>${lista.length > 1 ? `<small>Toca para ver otra · ${i + 1} de ${lista.length}</small>` : ''}</button>`;
+  return `<button type="button" class="hace" data-accion="hace"${lista.length > 1 ? ' aria-label="Ver otra mejora"' : ''}>${h.texto}<span class="gorda">${h.grande}</span>${lista.length > 1 ? `<small>Toca para ver otra</small>` : ''}</button>`;
 }
 
 function pintarProgreso() {
@@ -969,6 +1002,7 @@ function pintarProgreso() {
     ${pintarHace(hace)}
     ${pintarSinEntrenar(orden)}
     ${pintarUltimoAno()}
+    ${pintarPiqueTabla()}
     <h2 class="gorda seccion">Por músculo</h2>
     <div class="chips" role="group" aria-label="Elegir músculo">
       ${orden.map((o) => `<button type="button" data-musculo="${esc(o)}" aria-pressed="${o === estado.musculo}">${esc(o)}</button>`).join('')}
@@ -1195,7 +1229,7 @@ function pasearSalchicha(texto) {
   const d = document.createElement('div');
   d.className = 'salchicha';
   // A veces el que pasa es un elefante.
-  d.innerHTML = Math.random() < 0.35 ? '<span class="elefante">🐘</span>' : SVG_SALCHICHA;
+  d.innerHTML = Math.random() < 0.3 ? '<span class="elefante">🐘</span>' : typeof Carlitos !== 'undefined' ? Carlitos.dibujo(estado.carlitos || { stage: 'cachorro', mood: 'feliz', worn: ['collar'] }) : SVG_SALCHICHA;
   d.addEventListener('animationend', (ev) => { if (ev.target === d) d.remove(); });
   document.body.appendChild(d);
 }
@@ -1241,6 +1275,7 @@ function pintar() {
   svgBicho = vestirBicho(svgBase, nivelDe(datosMundo(estado.filas).entrenos).nivel, ES_CUMPLE(hoyIso()));
   if (estado.vista === 'hoy') pintarHoy();
   else if (estado.vista === 'mundo') pintarMundo(objetivoSemanal());
+  else if (estado.vista === 'carlitos') pintarCarlitos();
   else pintarProgreso();
   pintarDescanso();
   pintarPendiente();
@@ -1287,6 +1322,8 @@ document.addEventListener('pointerup', (ev) => {
 document.addEventListener('click', (ev) => {
   const t = ev.target.closest('button');
   if (!t) return;
+  if (t.hasAttribute('data-cx-abrir')) { guardarBorrador(); estado.vista = 'carlitos'; $('#pantalla').scrollTo(0, 0); return pintar(); }
+  if (t.dataset.cx) return undefined;
   if (t.dataset.ver) { guardarBorrador(); estado.vista = t.dataset.ver; $('#pantalla').scrollTo(0, 0); return pintar(); }
   if (t.dataset.dia) { guardarBorrador(); estado.dia = +t.dataset.dia; estado.ejercicio = null; return pintar(); }
   if (t.dataset.ej) { guardarBorrador(); estado.ejercicio = t.dataset.ej; $('#pantalla').scrollTo({ top: 0, behavior: 'smooth' }); return pintar(); }

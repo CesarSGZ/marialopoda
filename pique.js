@@ -1,9 +1,11 @@
 'use strict';
 // ---------- El pique con Cesarlópodo y los tests de fuerza ----------
-// De Cesarlópodo solo llega un resumen: días entrenados, si ha entrenado hoy, marcas que ha superado frente a sí mismo
-// y kilómetros de caminadora. Los pesos de dos personas no se comparan: cada uno compite con su yo del pasado.
+// De Cesarlópodo solo llega un resumen: si ha entrenado hoy, el peso que ha movido, marcas que ha superado frente a sí
+// mismo y kilómetros de caminadora. Los días entrenados no se comparan, porque vuestras rutinas tienen distintos días:
+// el duelo de la semana es el peso movido por cada uno frente a su propia media de las cuatro semanas anteriores.
 
 const PIQUE_URL = 'https://cesar-solla.pages.dev/api/pique';
+const CARLITOS_URL = 'https://cesar-solla.pages.dev/api/carlitos';
 
 async function traerPique() {
   const c = partesCodigo();
@@ -14,12 +16,59 @@ async function traerPique() {
     if (!d.ok) return;
     estado.pique = d.rival;
     guardar('pique', d.rival);
-    const activo = document.activeElement;
-    if (estado.vista === 'hoy' && $('#capa').hidden && (!activo || !activo.matches('input, textarea'))) pintar();
+    if (d.carlitos) { estado.carlitos = d.carlitos; guardar('carlitos', d.carlitos); }
+    const pendiente = leer('valePendiente', null);
+    if (pendiente) { guardar('valePendiente', null); enviarCarlitos({ type: 'vale', text: pendiente }).catch(() => {}); }
+    const activo = document.activeElement, quieto = Date.now() - (estado.toqueCarlitos || 0) > 8000;
+    if (!$('#capa').hidden || (activo && activo.matches('input, textarea'))) return;
+    if (estado.vista === 'hoy' || (estado.vista === 'carlitos' && quieto)) pintar();
   } catch (e) { /* sin red o sin conectar todavía: no sale el pique */ }
 }
 
-// Lo mismo que se cuenta de Cesarlópodo, calculado aquí con tus filas (así lo de hace un minuto ya cuenta).
+// ---------- Carlitos ----------
+async function enviarCarlitos(accion) {
+  const c = partesCodigo();
+  estado.toqueCarlitos = Date.now();
+  const r = await fetch(CARLITOS_URL, { method: 'POST', headers: { 'x-pique': c.k, 'content-type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: accion }) });
+  const d = await r.json();
+  if (!d.ok) throw new Error(d.error || 'error');
+  estado.carlitos = d.carlitos; guardar('carlitos', d.carlitos);
+  return d.carlitos;
+}
+function pintarCarlitos() {
+  const m = $('#pantalla');
+  if (!estado.carlitos) {
+    m.innerHTML = `<div class="carlitos-espera">${Carlitos.dibujo({ stage: 'cachorro', mood: 'contento', worn: ['collar'] })}
+      <h1 class="gorda">Carlitos está llegando</h1><p>Necesita conexión para saber qué tal estáis los dos. Vuelve en un momento.</p></div>`;
+    traerPique();
+    return;
+  }
+  m.innerHTML = '<div class="carlitos-vista" id="carlitos-caja"></div>';
+  Carlitos.montar($('#carlitos-caja'), { estado: estado.carlitos, viewer: 'maria', enviar: enviarCarlitos });
+}
+
+// ---------- Tu resumen, con tus filas (así lo de hace un minuto ya cuenta) ----------
+function toneladasDe(filas, hoy) {
+  const lunes = lunesDe(hoy), porDia = new Map(), porEj = new Map();
+  for (const f of filas) {
+    const kg = +f[F.KG] || 0, reps = +f[F.REPS] || 0;
+    if (kg <= 0 || reps <= 0 || f[F.FECHA] > hoy) continue;
+    porDia.set(f[F.FECHA], (porDia.get(f[F.FECHA]) || 0) + kg * reps);
+    if (f[F.FECHA] >= lunes) porEj.set(f[F.EJ], (porEj.get(f[F.EJ]) || 0) + kg * reps);
+  }
+  const t = (de, a = hoy) => Math.round([...porDia].reduce((s, [d, v]) => (d >= de && d <= a ? s + v : s), 0));
+  const dia = Math.round((new Date(hoy) - new Date(lunes)) / 864e5);
+  const ritmo = (ini, dias) => Math.round([1, 2, 3, 4].reduce((s, i) => s + t(desplazar(ini, -7 * i), desplazar(ini, -7 * i + dias)), 0) / 4);
+  const mejor = [...porDia].filter(([d]) => d >= lunes).sort((x, y) => y[1] - x[1])[0];
+  const top = [...porEj].sort((x, y) => y[1] - x[1])[0];
+  const sesiones = [...porDia.keys()].filter((d) => d >= desplazar(hoy, -29)).length;
+  const anterior = desplazar(lunes, -7);
+  return {
+    week: t(lunes), pace: ritmo(lunes, dia), lastWeek: t(anterior, desplazar(lunes, -1)), lastPace: ritmo(anterior, 6),
+    month: t(desplazar(hoy, -29)), year: t(desplazar(hoy, -364)), perSession: sesiones ? Math.round(t(desplazar(hoy, -29)) / sesiones) : 0,
+    best: mejor ? { fecha: mejor[0], kg: Math.round(mejor[1]) } : null, top: top ? { ejercicio: top[0], kg: Math.round(top[1]) } : null
+  };
+}
 function miResumen() {
   const hoy = hoyIso(), lunes = lunesDe(hoy), desde = desplazar(hoy, -13);
   const pesas = estado.filas.filter((f) => f[F.EJ] !== CAMINADORA && f[F.FECHA] <= hoy);
@@ -37,22 +86,49 @@ function miResumen() {
     porEj.set(f[F.EJ], e);
   }
   return {
-    entrenoHoy: dias.has(hoy), semana: [...dias].filter((d) => d >= lunes).length, racha,
+    entrenoHoy: dias.has(hoy), racha,
     records: [...porEj.values()].filter((e) => e.antes && e.ahora > e.antes * 1.001).length,
-    km: Math.round(camina.reduce((s, f) => s + datosCaminata(f).km, 0) * 10) / 10, caminoHoy: camina.some((f) => f[F.FECHA] === hoy)
+    km: Math.round(camina.reduce((s, f) => s + datosCaminata(f).km, 0) * 10) / 10, caminoHoy: camina.some((f) => f[F.FECHA] === hoy),
+    tonnage: toneladasDe(pesas, hoy)
   };
 }
 
-const entrenos = (n) => (n === 1 ? '1 entreno' : `${n} entrenos`);
+// Peso con su unidad: toneladas a partir de una.
+const peso = (kg) => (kg >= 100000 ? `${miles(kg / 1000)} t` : kg >= 1000 ? `${num(Math.round(kg / 100) / 10)} t` : `${miles(kg)} kg`);
+// Cuánto va cada uno por encima o por debajo de su propio ritmo; null si aún no hay con qué comparar o aún no ha empezado.
+const frenteASi = (actual, ritmo) => (ritmo > 0 && actual > 0 ? Math.round((actual / ritmo - 1) * 100) : null);
+const signo = (p) => `${p > 0 ? '+' : p < 0 ? '−' : ''}${Math.abs(p)} %`;
+function dueloSemana() {
+  const C = estado.pique, yo = miResumen();
+  if (!C || !C.tonnage) return null;
+  return { yo: frenteASi(yo.tonnage.week, yo.tonnage.pace), el: frenteASi(C.tonnage.week, C.tonnage.pace),
+    yoAntes: frenteASi(yo.tonnage.lastWeek, yo.tonnage.lastPace), elAntes: frenteASi(C.tonnage.lastWeek, C.tonnage.lastPace), mio: yo.tonnage, suyo: C.tonnage };
+}
+
 function lineasPique() {
   const C = estado.pique, yo = miResumen(), out = [];
   if (!C || C.today !== hoyIso()) return out;
   if (C.trainedToday && !yo.entrenoHoy) out.push('Cesarlópodo ya ha entrenado hoy. Dice que te espera en el podio. 😏');
   if (C.trainedToday && yo.entrenoHoy) out.push('Hoy habéis entrenado los dos. Equipo invencible. 💪');
   if (!C.trainedToday && yo.entrenoHoy) out.push('Tú ya has entrenado y Cesarlópodo todavía no. Recuérdaselo. 😇');
-  if (C.week > yo.semana) out.push(`Cesarlópodo lleva ${entrenos(C.week)} esta semana y tú ${yo.semana}. ¿Se lo vas a permitir?`);
-  else if (C.week && C.week === yo.semana) out.push(`Empate con Cesarlópodo: ${entrenos(C.week)} cada uno esta semana.`);
-  else if (yo.semana > C.week) out.push(`Vas ganando a Cesarlópodo esta semana: ${yo.semana} a ${C.week}. 🏆`);
+  const d = dueloSemana();
+  if (d) {
+    const T = d.suyo, M = d.mio;
+    if (d.yo !== null && d.el !== null) {
+      if (d.yo > d.el) out.push(`Duelo de la semana, cada uno contra su propia media: tú ${signo(d.yo)}, Cesarlópodo ${signo(d.el)}. Vas ganando. 🏆`);
+      else if (d.el > d.yo) out.push(`Duelo de la semana: Cesarlópodo va ${signo(d.el)} frente a su media y tú ${signo(d.yo)}. ¿Se lo vas a permitir?`);
+      else out.push(`Duelo de la semana empatado: los dos al ${signo(d.yo)} de vuestra media. Desempata.`);
+    }
+    if (d.yoAntes !== null && d.elAntes !== null && d.yoAntes !== d.elAntes) out.push(d.yoAntes > d.elAntes ? `La semana pasada ganaste el duelo: ${signo(d.yoAntes)} frente al ${signo(d.elAntes)} de Cesarlópodo. 👑` : `La semana pasada ganó Cesarlópodo el duelo (${signo(d.elAntes)} frente a tu ${signo(d.yoAntes)}). Esta es la revancha.`);
+    if (T.week || M.week) out.push(`Peso movido esta semana: tú ${peso(M.week)}, Cesarlópodo ${peso(T.week)}.`);
+    if (T.week + M.week >= 1000) out.push(`Entre los dos lleváis ${peso(T.week + M.week)} esta semana: lo que pesan ${miles((T.week + M.week) / 9)} carlitos. 🐶`);
+    if (T.perSession && M.perSession) out.push(`Por entreno, este mes: tú mueves ${peso(M.perSession)} y Cesarlópodo ${peso(T.perSession)}.`);
+    if (T.best && M.best) out.push(`Vuestro entreno más pesado de la semana: el tuyo, ${peso(M.best.kg)}; el de Cesarlópodo, ${peso(T.best.kg)}.`);
+    if (T.top) out.push(`Lo que más ha cargado Cesarlópodo esta semana: ${T.top.ejercicio.toLowerCase()}, ${peso(T.top.kg)} en total.`);
+    if (M.top) out.push(`Tu ejercicio estrella de la semana: ${M.top.ejercicio.toLowerCase()}, ${peso(M.top.kg)} movidos. 🌻`);
+    if (T.month && M.month) out.push(`Último mes: tú ${peso(M.month)}, Cesarlópodo ${peso(T.month)}. Juntos, ${num(Math.round((T.month + M.month) / 500) / 10)} elefantes. 🐘`);
+    if (T.year && M.year) out.push(`En el último año habéis movido ${peso(T.year + M.year)} entre los dos. Tú, ${peso(M.year)}.`);
+  }
   const rec = C.records && C.records[0];
   if (rec) out.push(`Cesarlópodo se ha superado en ${rec.ejercicio}: ${rec.reps} × ${num(rec.kg)} kg, un ${num(rec.mejora)} % más que su mejor marca. Te toca superarte a ti.`);
   const suyos = (C.records || []).length;
@@ -70,7 +146,34 @@ function pintarPique() {
   estado.piqueVez = (estado.piqueVez === undefined ? Math.floor(Math.random() * l.length) : estado.piqueVez) % l.length;
   return `<button type="button" class="pique" data-accion="pique" aria-label="Otro pique con Cesarlópodo"><small>Pique con Cesarlópodo</small>${esc(l[estado.piqueVez])}</button>`;
 }
-const lineaSemanaPique = () => (estado.pique && estado.pique.today === hoyIso() ? `<p>🥊 Esta semana: tú ${entrenos(miResumen().semana)}, Cesarlópodo ${entrenos(estado.pique.week)}.</p>` : '');
+// Al terminar: cómo va el duelo, no cuántos días lleva cada uno.
+function lineaSemanaPique() {
+  const d = estado.pique && estado.pique.today === hoyIso() ? dueloSemana() : null;
+  if (!d || d.yo === null || d.el === null) return '';
+  return `<p>🥊 Duelo de la semana: tú ${signo(d.yo)} frente a tu media, Cesarlópodo ${signo(d.el)}.${d.yo > d.el ? ' ¡Vas ganando!' : ''}</p>`;
+}
+// En Progreso, todo el pique de un vistazo.
+function pintarPiqueTabla() {
+  const d = estado.pique && estado.pique.today === hoyIso() ? dueloSemana() : null;
+  if (!d) return '';
+  const C = estado.pique, yo = miResumen(), M = d.mio, T = d.suyo;
+  const fila = (nombre, a, b, texto = peso) => `<tr><td>${nombre}</td><td class="${a > b ? 'gana' : ''}">${texto(a)}</td><td class="${b > a ? 'gana' : ''}">${texto(b)}</td></tr>`;
+  const caja = (quien, p, otro) => `<div class="${p !== null && (otro === null || p > otro) ? 'gana' : ''}"><small>${quien}</small><b>${p === null ? '—' : signo(p)}</b></div>`;
+  return `<h2 class="gorda seccion">Pique con Cesarlópodo</h2>
+    <p class="pie">El duelo de la semana compara lo que mueve cada uno con su propia media de las cuatro semanas anteriores, a estas alturas de la semana. Así gana quien más se supera, entrene los días que entrene.</p>
+    <div class="duelo-semana">${caja('Tú', d.yo, d.el)}${caja('Cesarlópodo', d.el, d.yo)}</div>
+    <table class="pique-tabla"><thead><tr><th></th><th>Tú</th><th>Cesarlópodo</th></tr></thead><tbody>
+      ${fila('Esta semana', M.week, T.week)}
+      ${fila('Semana pasada', M.lastWeek, T.lastWeek)}
+      ${fila('Por entreno (mes)', M.perSession, T.perSession)}
+      ${fila('Entreno más pesado', M.best ? M.best.kg : 0, T.best ? T.best.kg : 0)}
+      ${fila('Último mes', M.month, T.month)}
+      ${fila('Último año', M.year, T.year)}
+      ${fila('Marcas superadas (2 sem.)', yo.records, (C.records || []).length, (v) => miles(v))}
+      ${fila('Caminadora (semana)', yo.km, C.walkWeek, (v) => `${num(v)} km`)}
+      ${fila('Semanas seguidas', yo.racha, C.streak, (v) => miles(v))}
+    </tbody></table>`;
+}
 
 // ---------- Tests de fuerza ----------
 // Ejercicios que pesan igual en cualquier gimnasio (barra, mancuernas, polea), para saber de verdad dónde estás.

@@ -72,7 +72,7 @@ function pintarCabCircuito(r, lista) {
   if (!r.circuito) return '';
   const est = lista.filter((x) => x.circuito);
   const vuelta = Math.min(est[0].series, Math.min(...est.map(hechasDe)) + 1);
-  return `<div class="circuito-cab"><span class="gorda">Vuelta ${vuelta} de ${est[0].series}</span>
+  return `<div class="circuito-cab"><span class="gorda">${vuelta === est[0].series ? 'Última vuelta' : `Vuelta ${vuelta}`}</span>
     <ol class="estaciones" aria-label="Estaciones de esta vuelta">${est.map((x) => `<li class="${x.ejercicio === r.ejercicio ? 'ahora' : hechasDe(x) >= vuelta ? 'ok' : ''}" aria-label="${esc(x.ejercicio)}">${x.icono}</li>`).join('')}</ol></div>`;
 }
 

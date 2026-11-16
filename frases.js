@@ -100,7 +100,15 @@ const FRASES = {
     'Un elefante te mira y asiente con respeto.',
     'Esto da para secuela.',
     'Lo tuyo es la saga completa, no un cortometraje.',
-    'Darth Vader ha pedido tu rutina.'
+    'Darth Vader ha pedido tu rutina.',
+    'Carlitos se asoma por la puerta del gimnasio a ver cómo vas.',
+    'Carlitos ha visto esa serie y se ha puesto panza arriba de la emoción.',
+    'Psst: Cesarlópodo está muy orgulloso de ti. Lo sé de buena tinta.',
+    'Esa serie merece un girasol. Toma 🌻.',
+    'Carlitos dice que eres su entrenadora favorita.',
+    'Dato confirmado por la ciencia: estás más fuerte que la semana pasada.',
+    'Hoy brillas más que un día dorado de Carlitos.',
+    'Un elefante y Carlitos han hecho la ola. Ha quedado rara, pero sincera.'
   ],
   record: [
     'Nunca habías levantado tanto. Hasta hoy.',
@@ -197,6 +205,46 @@ const FRASES = {
     'Eres lo mejor que me ha pasado, Lópoda. Feliz cumpleaños. Te quiero muchísimo.',
     'Un año más a tu lado, y cada vez te quiero más. Feliz cumpleaños, Lópoda.'
   ],
+  carlitosFin: [
+    'Carlitos se ha comido sus croquetas gracias a tu entreno.',
+    'Carlitos ha oído que has terminado y ha venido corriendo. Con esas patas, ha tardado un rato.',
+    'Tu entreno cuenta para Carlitos: más croquetas y un poco más cerca de su próximo truco.',
+    'Carlitos ha olido tus zapatillas y ha decidido que eres su heroína.',
+    'Carlitos mueve tanto la cola que se le mueve el cuerpo entero.',
+    'Carlitos ya lo sabe: hoy has entrenado. Te espera panza arriba.',
+    'Carlitos ha apuntado tu entreno en su diario. Con la pata, así que se entiende regular.',
+    'Carlitos ha dado tres vueltas sobre sí mismo. Es su forma de aplaudir.'
+  ],
+  vales: [
+    'Vale por un masaje de espalda de veinte minutos, sin prisas.',
+    'Vale por una noche de cine con palomitas grandes. Tú eliges la peli.',
+    'Vale por un desayuno en la cama hecho por Cesarlópodo.',
+    'Vale por una cena en el sitio que tú quieras.',
+    'Vale por una tarde de sofá, mantita y The Mandalorian.',
+    'Vale por un masaje de pies. Te lo has ganado.',
+    'Vale por un día sin fregar platos.',
+    'Vale por un helado del sabor que quieras, en cualquier momento.',
+    'Vale por un paseo largo de la mano, a donde tú digas.',
+    'Vale por un capricho pequeño, el que tú elijas.',
+    'Vale por elegir el plan del sábado sin discusión.',
+    'Vale por cien besos. Canjeables por partes.',
+    'Vale por un ramo de girasoles.',
+    'Vale por una sesión de mimos sin límite de tiempo.'
+  ],
+  cartas: [
+    'Lópoda:\nQuería decirte que me encanta verte entrenar. No por los kilos, que también, sino por cómo te pones a ello aunque estés cansada. Eso dice mucho de ti.\nTe quiero muchísimo.',
+    'Mi Lópoda:\nCada vez que abro mi app y veo que has entrenado, sonrío como un tonto. Eres constante, valiente y la más linda.\nCarlitos y yo estamos muy orgullosos de ti.',
+    'Lópoda:\nHay días buenos y días de agujetas. En los dos eres mi persona favorita.\nGracias por hacerlo todo más bonito.',
+    'Querida Marialópoda:\nPequeño recordatorio por si se te olvida: eres fuerte por dentro y por fuera. Y estás preciosa haciendo hip thrust, que conste.\nTe quiero.',
+    'Lópoda:\nMe gusta mucho la vida contigo. Entrenar, ir al cine, el sofá, Carlitos, los girasoles… todo es mejor si estás tú.\nSigue así, campeona.',
+    'Mi girasol:\nNo hace falta que cada semana sea perfecta. Con que sigas, ya estás ganando. Y yo voy a estar aquí animándote siempre.\nTe quiero muchísimo.',
+    'Lópoda:\nEsta semana te mereces un premio. No sé cuál, así que pídemelo tú. Lo que quieras.\nTu Cesarlópodo.',
+    'Marialópoda:\nQué suerte tengo de que seas tú. Lo pienso muchas veces, y hoy te lo escribo.\nUn beso enorme.',
+    'Lópoda:\nSi algún día te cuesta ponerte, acuérdate de todo lo que ya has conseguido. Mira tu progreso: es una barbaridad.\nEstoy orgullosísimo de ti.',
+    'Mi Lópoda:\nCarlitos me ha pedido que te diga que eres su favorita. Yo también lo pienso, pero él lo ha dicho primero.\nTe quiero.',
+    'Lópoda:\nUn año, una semana o un día: da igual cuánto pase, cada vez te quiero más.\nGracias por ser como eres.',
+    'Marialópoda:\nTu fuerza no se mide solo en kilos. Se mide en cómo cuidas, cómo ríes y cómo no te rindes.\nY en kilos también, que conste.'
+  ],
   cesar: [
     'Te quiero mucho, Lópoda. No te haces una idea.',
     'ES INCREÍBLE LO LINDA QUE ERES.',
@@ -205,7 +253,17 @@ const FRASES = {
     'Mi Lópoda favorita del universo.',
     'Qué suerte tengo de que seas tú.',
     'Eres mi plan favorito, más que ir al cine. Y mira que me gusta.',
-    'Te debo unas palomitas por este entreno.'
+    'Te debo unas palomitas por este entreno.',
+    'Cuando entrenas así, me dan ganas de presumir de ti delante de todo el mundo.',
+    'Eres mi persona favorita de todas las personas.',
+    'Hoy también estás preciosa. Lo digo por si no te lo había dicho aún.',
+    'Me haces la vida más bonita, Lópoda.',
+    'Tú y yo, y Carlitos. Equipo perfecto.',
+    'Gracias por ser tan tú.',
+    'No sé cómo lo haces para estar cada día más linda.',
+    'Si hubiera un récord de quererte, lo batiría cada día.',
+    'Eres la más fuerte, la más linda y la más mía.',
+    'Te quiero más que Carlitos a las croquetas. Y eso es mucho.'
   ],
   circuito: [
     'Vuelta completa. Respira un poco, Lópoda.',

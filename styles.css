@@ -189,8 +189,8 @@ section.reposo { background: var(--ciruela); border-radius: 28px; padding: 22px 
 
 /* ---- Menú ---- */
 #menu { flex: none; position: relative; z-index: 6; padding-bottom: var(--abajo); background: var(--berenjena);
-  border-top: 1px solid var(--ciruela); display: grid; grid-template-columns: repeat(3, 1fr); }
-#menu button { height: var(--menu-alto); font-weight: 700; color: var(--tinta-2); font-size: 16px; }
+  border-top: 1px solid var(--ciruela); display: grid; grid-template-columns: repeat(4, 1fr); }
+#menu button { height: var(--menu-alto); font-weight: 700; color: var(--tinta-2); font-size: 15px; }
 #menu button[aria-current="page"] { color: var(--chicle); }
 
 /* ---- Progreso ---- */
@@ -641,3 +641,24 @@ button.hace { display: block; width: 100%; text-align: left; font: inherit; font
 .sin-entrenar .mucho { background: rgba(255, 79, 142, .2); box-shadow: inset 0 0 0 2px var(--chicle-fuerte); }
 .sin-entrenar .mucho b { color: var(--chicle); }
 @media (prefers-reduced-motion: reduce) { .brota { animation: none; } }
+
+/* ---- Carlitos ---- */
+.carlitos-vista { padding: 16px 16px 24px; }
+.carlitos-vista .cx-cab h2 { font-family: 'Bagel', 'Figtree', sans-serif; font-weight: 400; }
+.carlitos-espera { text-align: center; padding: 40px 20px; }
+.carlitos-espera .cx-perro { max-width: 260px; margin: 0 auto 12px; }
+.salchicha .cx-perro { width: 150px; }
+.salchicha .cx-pata { transform-box: fill-box; transform-origin: 50% 0; animation: pata .28s ease-in-out infinite alternate; }
+.salchicha .cx-pata.tras { animation-direction: alternate-reverse; }
+.salchicha .cx-perro { transform: scaleX(-1); }
+.vale { margin: 10px 0; padding: 12px 14px; border-radius: 14px; border: 2px dashed var(--amarillo); background: rgba(255, 197, 49, .12); font-weight: 700; }
+.vale small { display: block; font-weight: 500; color: var(--tinta-2); }
+.carta-cesar { text-align: left; white-space: pre-line; font-size: 17px; line-height: 1.55; }
+.pique-tabla { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 15px; }
+.pique-tabla th, .pique-tabla td { padding: 7px 4px; border-bottom: 1px solid var(--ciruela-2); text-align: right; }
+.pique-tabla th:first-child, .pique-tabla td:first-child { text-align: left; color: var(--tinta-2); font-weight: 500; }
+.pique-tabla .gana { color: var(--amarillo); font-weight: 800; }
+.duelo-semana { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 8px 0; }
+.duelo-semana div { padding: 10px; border-radius: 14px; background: var(--ciruela); text-align: center; }
+.duelo-semana b { display: block; font-size: 24px; }
+.duelo-semana .gana { box-shadow: inset 0 0 0 2px var(--amarillo); }
