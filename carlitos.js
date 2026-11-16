@@ -1,5 +1,6 @@
 'use strict';
-// Carlitos, the dachshund César and María look after together. The same file runs in Mission Control (training) and in
+// Carlitos, the dachshund César and María look after together while they live apart, until she joins César in Germany.
+// He lives in their future flat there, carries notes from one to the other and gets the flat ready. The same file runs in Mission Control (training) and in
 // Marialópoda (app/carlitos.js is a copy): the server works out how he is, this file draws him and sends what you do.
 // Carlitos.montar(nodo, { estado, viewer: 'cesar' | 'maria', enviar(accion) → Promise<estado> }) paints his page;
 // Carlitos.tira(estado, viewer) is the one-line strip for the main screen, or '' when there is nothing to tell.
@@ -84,6 +85,19 @@
   }
   const mini = (e) => `<span class="cx-mini">${dibujo(e, { dormido: durmiendo() })}</span>`;
 
+  // ---------- Carlitos is learning languages too: one word a day, the same for both ----------
+  const PALABRAS = [
+    ['strong', 'stark', 'fuerte'], ['together', 'zusammen', 'juntos'], ['home', 'Zuhause', 'hogar'], ['dog', 'Hund', 'perro'],
+    ['sausage', 'Wurst', 'salchicha'], ['love', 'Liebe', 'amor'], ['soon', 'bald', 'pronto'], ['proud', 'stolz', 'orgulloso'],
+    ['brave', 'mutig', 'valiente'], ['job interview', 'Vorstellungsgespräch', 'entrevista de trabajo'], ['flat', 'Wohnung', 'piso'],
+    ['sunflower', 'Sonnenblume', 'girasol'], ['I miss you', 'Ich vermisse dich', 'te echo de menos'], ['good morning', 'guten Morgen', 'buenos días'],
+    ['workout', 'Training', 'entreno'], ['treat', 'Leckerli', 'golosina'], ['hug', 'Umarmung', 'abrazo'], ['dream', 'Traum', 'sueño'],
+    ['weight', 'Gewicht', 'peso'], ['to hire', 'einstellen', 'contratar'], ['skills', 'Fähigkeiten', 'habilidades'], ['cozy', 'gemütlich', 'acogedor'],
+    ['my love', 'mein Schatz', 'mi amor'], ['you can do it', 'du schaffst das', 'tú puedes'], ['luggage', 'Gepäck', 'equipaje'], ['welcome', 'willkommen', 'bienvenida'],
+    ['cuddles', 'Kuscheln', 'mimos'], ['team', 'Team', 'equipo'], ['future', 'Zukunft', 'futuro'], ['heart', 'Herz', 'corazón']
+  ];
+  const palabra = (iso) => PALABRAS[Math.round(Date.parse(`${iso}T12:00:00Z`) / 864e5) % PALABRAS.length];
+
   // ---------- What he says ----------
   function frase(e, v) {
     const o = otro(v), sem = e.week || {}, dia = (new Date().getDay() + 6) % 7;
@@ -103,6 +117,11 @@
     if (e.love < 30) l.push('Carlitos se ha tumbado panza arriba. Pide mimos.');
     if (e.event && !e.event.done) l.push(`${e.event.title}: ${e.event.text}`);
     if (e.event?.done) l.push(`¡${e.event.title} superada! Carlitos no para de mover la cola.`);
+    if (e.visit) l.push(e.visit.days === 0 ? '¡Hoy os veis! Carlitos ha preparado la casa entera.' : e.visit.days <= 7 ? `Faltan ${e.visit.days === 1 ? 'un día' : `${e.visit.days} días`} para veros. Carlitos ya tiene la maleta hecha.` : `Carlitos tacha los días en el calendario: os veis el ${fecha(e.visit.fecha)}.`);
+    const [en, de] = palabra(e.today);
+    l.push(`Palabra del día de Carlitos: «${en}». En alemán, «${de}». Guau.`);
+    l.push(...(v === 'maria' ? ['Carlitos te guarda tu lado del sofá en Alemania. No deja que nadie se siente.', 'Carlitos ha olido la almohada y se ha acordado de ti. Te echa de menos.', 'Cada entreno, cada palabra de inglés y cada candidatura os acerca un poco más.', 'Carlitos dice que vas a encontrar un trabajo genial. Lo dice moviendo la cola, así que es verdad.']
+      : ['Carlitos vigila la casa de Alemania hasta que llegue Marialópoda.', 'Carlitos ha dormido en el lado de la cama de Marialópoda. Dice que así huele a ella.', 'Carlitos pregunta cuándo viene Marialópoda. Cada día.']));
     l.push(...(e.mood === 'triste' ? ['Carlitos os echa de menos. Un entreno y unos mimos lo arreglan todo.'] : [
       'Guau. Eso significa “sois los mejores”.', 'Carlitos ha decidido que hoy es buen día para un récord.',
       'Carlitos ha escondido un calcetín. No dirá dónde.', 'Carlitos mueve la cola en tu dirección. Es oficial: te quiere.',
@@ -144,6 +163,9 @@
         <button type="button" class="cx-boton" data-cx="golosina"${e.bones >= 4 && e.left?.[v]?.golosina ? '' : ' data-agotado'}>🍪 Golosina <small>🦴 4</small></button>
         <button type="button" class="cx-boton" data-cx="jugar"${e.left?.[v]?.jugar ? '' : ' data-agotado'}>🎾 Jugar</button>
       </div>
+      ${visita(e)}
+      ${pasos(e, v)}
+      ${casa(e)}
       <section class="cx-tarjeta"><h3>Esta semana</h3>
         <p class="cx-dos">${['cesar', 'maria'].map((w) => `<span class="${e.week?.[w] ? 'si' : ''}">${e.week?.[w] ? '✅' : '⏳'} ${w === v ? 'Tú' : NOMBRE[w]}</span>`).join('')}</p>
         <p>${e.week?.cesar && e.week?.maria ? 'Carlitos está bien cuidado esta semana: habéis entrenado los dos.' : 'Para cuidar bien a Carlitos, cada uno tiene que entrenar al menos una vez por semana. Da igual cuántas.'}</p>
@@ -160,7 +182,7 @@
           : x.buyable ? `<button type="button" class="cx-boton" data-cx="comprar" data-item="${x.id}"${e.bones >= x.price ? '' : ' data-agotado'}>${esc(x.name)}<small>🦴 ${x.price}</small></button>`
             : `<span class="cx-bloq">${esc(x.name)}<small>${esc(x.season ? 'Solo en Navidad' : REGALO[x.gift] || '')}</small></span>`)).join('')}
       </div></details>
-      ${v === 'maria' && misVales.length ? `<details class="cx-tarjeta"><summary>🎟️ Tus vales</summary>${misVales.slice().reverse().map((x) => `<p class="cx-vale${x.used ? ' usado' : ''}">${esc(x.text)}<small>${x.used ? `Canjeado el ${fecha(x.used)}` : `Desde el ${fecha(x.d)} · enséñaselo a Cesarlópodo`}</small></p>`).join('')}</details>` : ''}
+      ${v === 'maria' && misVales.length ? `<details class="cx-tarjeta"><summary>🎟️ Tus vales</summary>${misVales.slice().reverse().map((x) => `<p class="cx-vale${x.used ? ' usado' : ''}">${esc(x.text)}<small>${x.used ? `Canjeado el ${fecha(x.used)}` : `Desde el ${fecha(x.d)} · Cesarlópodo también lo ve`}</small></p>`).join('')}</details>` : ''}
       ${v === 'cesar' && misVales.some((x) => !x.used) ? `<section class="cx-tarjeta"><h3>🎟️ Vales de Marialópoda</h3>${misVales.filter((x) => !x.used).map((x) => `<p class="cx-vale">${esc(x.text)}<small>Ganado el ${fecha(x.d)}</small><button type="button" class="cx-boton" data-cx="canjear" data-id="${esc(x.id)}">Canjeado</button></p>`).join('')}</section>` : ''}
       <details class="cx-tarjeta"><summary>💌 Mandar una nota con Carlitos</summary>
         <p class="cx-suave">Carlitos se la lleva a ${NOMBRE[o]} en el collar. Le saldrá al abrir su app.</p>
@@ -174,13 +196,43 @@
     </div>`;
   }
 
+  // What each one does that brings them closer, once a day each.
+  const PASOS = {
+    maria: [['ingles', '🇬🇧 He practicado inglés'], ['trabajo', '💼 He avanzado con el trabajo'], ['entrevista', '🤝 Tengo una entrevista']],
+    cesar: [['aleman', '🇩🇪 He practicado alemán'], ['casa', '🏠 He avanzado con la casa']]
+  };
+  function pasos(e, v) {
+    const o = otro(v), suyos = (e.diary || []).filter((d) => d.fecha === e.today && d.text.includes(NOMBRE[o]) && ['🇬🇧', '💼', '🤝', '🇩🇪', '🏠'].includes(d.icon));
+    return `<section class="cx-tarjeta"><h3>Lo que os acerca</h3>
+      <p class="cx-suave">${v === 'maria' ? 'Cada paso hacia Alemania cuenta: el inglés, la búsqueda de trabajo, las entrevistas. Apúntalo y Carlitos se lo cuenta a Cesarlópodo.' : 'Tu parte: el alemán y la casa. Apúntalo y Carlitos se lo cuenta a Marialópoda.'}</p>
+      <div class="cx-rejilla">${PASOS[v].map(([k, t]) => (e.left?.[v]?.[k] === 0 ? `<span class="cx-bloq cx-hecho">${t}<small>Hecho hoy ✓</small></span>` : `<button type="button" class="cx-boton" data-cx="paso" data-kind="${k}">${t}</button>`)).join('')}</div>
+      ${suyos.length ? `<p class="cx-suave">Hoy ${NOMBRE[o]}: ${suyos.map((d) => d.icon).join(' ')}. Mándale una nota con Carlitos.</p>` : ''}</section>`;
+  }
+  function visita(e) {
+    const x = e.visit;
+    return `<section class="cx-tarjeta cx-visita"><h3>${x ? (x.days === 0 ? '¡Hoy os veis! 🫶' : `Os veis en ${x.days === 1 ? '1 día' : `${x.days} días`}`) : 'La próxima vez que os veis'}</h3>
+      ${x ? `<p>El ${fecha(x.fecha)}. Carlitos ya está contando las horas.</p>` : '<p class="cx-suave">Poned la fecha y Carlitos hará la cuenta atrás con vosotros.</p>'}
+      <div class="cx-fila"><input type="date" class="cx-texto cx-fecha" id="cx-visita" value="${x ? x.fecha : ''}" min="${e.today}"><button type="button" class="cx-boton" data-cx="visita">${x ? 'Cambiar' : 'Guardar'}</button></div></section>`;
+  }
+  function casa(e) {
+    const h = e.home;
+    if (!h) return '';
+    return `<section class="cx-tarjeta cx-casa"><h3>Vuestra casa en Alemania</h3>
+      <div class="cx-piso" aria-label="Lo que ya hay en la casa">${h.items.map((x) => `<span title="${esc(x.name)}">${x.icon}</span>`).join('')}</div>
+      ${h.next ? `<p class="cx-suave">Lo siguiente: ${esc(h.next.name.toLowerCase())}. Se llena entrenando, cuidando a Carlitos, con vuestras notas y con cada paso hacia Alemania.</p>${barra(h.progress, '#FFC531')}` : '<p>La casa está lista. Solo faltas tú, Marialópoda. 💛</p>'}</section>`;
+  }
+
   // ---------- The strip on the main screen ----------
   function tira(e, v) {
     if (!e) return '';
     const o = otro(v), visto = leer('visto.' + v, ''), dia = (new Date().getDay() + 6) % 7;
     const nota = (e.messages || []).find((m) => m.from === o && !m.read);
     let texto = '';
+    const entrevista = (e.diary || []).find((d) => d.icon === '🤝' && d.fecha >= shiftIso(e.today, -1));
     if (nota) texto = `Carlitos trae una nota de ${NOMBRE[o]} en el collar. 💌`;
+    else if (e.visit && e.visit.days === 0) texto = '¡Hoy os veis! Carlitos no puede más de la emoción. 🫶';
+    else if (entrevista && v === 'cesar' && visto !== entrevista.fecha + entrevista.text) texto = '¡Marialópoda tiene una entrevista! Mándale ánimo con Carlitos. 🤝';
+    else if (e.visit && e.visit.days <= 7) texto = `Faltan ${e.visit.days === 1 ? 'un día' : `${e.visit.days} días`} para veros. Carlitos ya tiene la maleta hecha. 🧳`;
     else if (e.season?.id === 'cumple') texto = '¡Hoy es el cumpleaños de Carlitos! 🎂';
     else if (!e.week?.[v] && dia >= 3) texto = 'Carlitos te espera: esta semana aún no has entrenado.';
     else if (e.diary?.[0] && e.diary[0].fecha + e.diary[0].text !== visto && e.diary[0].fecha >= shiftIso(e.today, -2)) texto = e.diary[0].text;
@@ -259,6 +311,17 @@
       } else if (tipo === 'vestir') enviar({ type: 'vestir', item: b.dataset.item, quitar: !!b.dataset.quitar });
       else if (tipo === 'comprar') { flotar(b, '🛍️'); enviar({ type: 'comprar', item: b.dataset.item }); }
       else if (tipo === 'leido') enviar({ type: 'leido' });
+      else if (tipo === 'paso') {
+        const k = b.dataset.kind;
+        animar(raiz, k === 'entrevista' ? 'saltar' : 'feliz', 1600); flotar(carlitos, { ingles: '🇬🇧', aleman: '🇩🇪', trabajo: '💼', entrevista: '🍀', casa: '🏠' }[k] || '💗');
+        decir(raiz, { ingles: 'Well done! Carlitos está orgullosísimo. Un paso más cerca de Alemania.', trabajo: '¡Bien! Cada paso cuenta. Carlitos ya te imagina en tu oficina alemana.', entrevista: '¡Mucha suerte! Carlitos cruza las patas. Lo vas a hacer genial: eres de RR. HH., las entrevistas son tu terreno.', aleman: 'Sehr gut! Carlitos te aplaude con la cola.', casa: 'Carlitos ha inspeccionado la casa. Aprobada, pero falta Marialópoda.' }[k] || '¡Bien!');
+        enviar({ type: 'paso', kind: k });
+      } else if (tipo === 'visita') {
+        const f = raiz.querySelector('#cx-visita'), val = f ? f.value : '';
+        if (!val) { f && f.focus(); return; }
+        flotar(b, '🫶'); decir(raiz, 'Apuntado. Carlitos ha marcado el día en el calendario con la pata.');
+        enviar({ type: 'visita', fecha: val });
+      }
       else if (tipo === 'canjear') enviar({ type: 'canjear', id: b.dataset.id });
       else if (tipo === 'mensaje') {
         const t = raiz.querySelector('#cx-nota'), texto = t ? t.value.trim() : '';
@@ -338,6 +401,11 @@
   .cx-nota p{margin:6px 0;font-size:18px;font-weight:600}
   .cx-vale{padding:10px 12px;border-radius:12px;background:rgba(255,197,49,.14);border:1px dashed #FFC531;display:flex;flex-direction:column;gap:6px}
   .cx-vale.usado{opacity:.5;text-decoration:line-through}
+  .cx-fila{display:flex;gap:8px;align-items:center}
+  .cx-fecha{min-height:44px;margin:0;flex:1;color-scheme:dark}
+  .cx-visita h3{font-size:20px}
+  .cx-hecho{opacity:.8;border-style:solid;border-color:#22B573}
+  .cx-piso{display:flex;flex-wrap:wrap;gap:8px;font-size:30px;padding:12px;border-radius:14px;margin:6px 0;background:linear-gradient(#F4E3C9,#E8CFA8 70%,#C9A27A 70%)}
   .cx-tira{display:flex;align-items:center;gap:10px;width:100%;padding:8px 12px;border-radius:16px;background:rgba(255,197,49,.12);border:1px solid rgba(255,197,49,.35);color:inherit;font:inherit;text-align:left;cursor:pointer;margin:8px 0}
   .cx-tira small{display:block;font-size:11px;letter-spacing:.08em;font-weight:800;opacity:.7}
   .cx-mini{flex:0 0 64px;width:64px}

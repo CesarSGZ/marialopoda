@@ -313,6 +313,7 @@ function objetivoSemanal() {
 function saludoDeHoy() {
   if (ES_CUMPLE(hoyIso())) return azar(FRASES.cumple);
   const ahora = new Date(), h = ahora.getHours(), d = ahora.getDay();
+  if (Math.random() < 0.15) return azar(FRASES.alemania);
   if (Math.random() > 0.35) return azar(FRASES.saludo);
   if (d === 1) return azar(FRASES.lunes);
   if (d === 5) return azar(FRASES.viernes);
@@ -696,7 +697,7 @@ function terminar() {
     ${ganados ? `<p>🥊 Has ido por delante de tu yo del pasado en ${ganados} ${ganados === 1 ? 'ejercicio' : 'ejercicios'}.</p>` : ''}
     ${semana >= objetivo ? `<p>${esc(azar(FRASES.semana))}</p>` : ''}
     <p>🐶 ${esc(azar(FRASES.carlitosFin))}</p>
-    ${vale ? `<div class="vale">🎟️ Carlitos te trae un vale en la boca: ${esc(vale)}<small>Lo tienes guardado en Carlitos. Enséñaselo a Cesarlópodo para canjearlo.</small></div>` : ''}
+    ${vale ? `<div class="vale">🎟️ Carlitos te trae un vale en la boca: ${esc(vale)}<small>Lo tienes guardado en Carlitos, y Cesarlópodo también lo ve.</small></div>` : ''}
     <p class="cesar">${esc(azar(FRASES.cesar))}<br>Cesarlópodo</p>
     <button type="button" class="principal" data-accion="cerrar-fin">Hasta la próxima</button>
   </div>`;
