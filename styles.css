@@ -189,7 +189,8 @@ section.reposo { background: var(--ciruela); border-radius: 28px; padding: 22px 
 
 /* ---- Menú ---- */
 #menu { flex: none; position: relative; z-index: 6; padding-bottom: var(--abajo); background: var(--berenjena);
-  border-top: 1px solid var(--ciruela); display: grid; grid-template-columns: repeat(4, 1fr); }
+  border-top: 1px solid var(--ciruela); display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; }
+#menu button[hidden] { display: none; }
 #menu button { height: var(--menu-alto); font-weight: 700; color: var(--tinta-2); font-size: 15px; }
 #menu button[aria-current="page"] { color: var(--chicle); }
 

@@ -29,6 +29,9 @@ const renombrarRutina = (r) => (NUEVO_NOMBRE[r.ejercicio] ? { ...r, ejercicio: N
 const NOTA_SUELTA = 'Nota';
 // El mapa del cuerpo compara con el baremo de una mujer de este peso; no se le pide el suyo.
 const PESO_REFERENCIA = 60;
+// Carlitos vive ya en el servidor, pero está escondido hasta que Cesarlópodo decida enseñarlo: true lo saca en toda la app.
+const CARLITOS_VISIBLE = false;
+if (!CARLITOS_VISIBLE) for (const k of Object.keys(FRASES)) { const sin = FRASES[k].filter((f) => !/Carlitos/.test(f)); if (sin.length) FRASES[k] = sin; }
 
 const estado = {
   sueltas: leer('sueltas', []),
@@ -340,7 +343,7 @@ function pintarHoy() {
       <button class="bicho" type="button" aria-label="Saludar a Marialópoda" data-accion="bicho">${svgBicho}</button>
     </div>
     ${pintarPique()}
-    ${typeof Carlitos !== 'undefined' ? Carlitos.tira(estado.carlitos, 'maria') : ''}
+    ${CARLITOS_VISIBLE && typeof Carlitos !== 'undefined' ? Carlitos.tira(estado.carlitos, 'maria') : ''}
     <h1 class="gorda titulo-dia">Día ${estado.dia}, ${lista.length && lista[0].nombre === 'Mini entreno' ? 'mini entreno' : esc(dia.nombre.toLowerCase())}</h1>
     <div class="dias" role="group" aria-label="Elegir día">
       ${dias.map((d) => `<button type="button" data-dia="${d.dia}" aria-pressed="${d.dia === estado.dia}"><b>${d.dia}</b>${esc(d.nombre)}</button>`).join('')}
@@ -696,8 +699,8 @@ function terminar() {
     ${lineaSemanaPique()}
     ${ganados ? `<p>🥊 Has ido por delante de tu yo del pasado en ${ganados} ${ganados === 1 ? 'ejercicio' : 'ejercicios'}.</p>` : ''}
     ${semana >= objetivo ? `<p>${esc(azar(FRASES.semana))}</p>` : ''}
-    <p>🐶 ${esc(azar(FRASES.carlitosFin))}</p>
-    ${vale ? `<div class="vale">🎟️ Carlitos te trae un vale en la boca: ${esc(vale)}<small>Lo tienes guardado en Carlitos, y Cesarlópodo también lo ve.</small></div>` : ''}
+    ${CARLITOS_VISIBLE ? `<p>🐶 ${esc(azar(FRASES.carlitosFin))}</p>` : ''}
+    ${vale ? (CARLITOS_VISIBLE ? `<div class="vale">🎟️ Carlitos te trae un vale en la boca: ${esc(vale)}<small>Lo tienes guardado en Carlitos, y Cesarlópodo también lo ve.</small></div>` : `<div class="vale">🎟️ Te ha tocado un vale: ${esc(vale)}<small>Haz una captura y enséñasela a Cesarlópodo.</small></div>`) : ''}
     <p class="cesar">${esc(azar(FRASES.cesar))}<br>Cesarlópodo</p>
     <button type="button" class="principal" data-accion="cerrar-fin">Hasta la próxima</button>
   </div>`;
@@ -1276,7 +1279,7 @@ function pintar() {
   svgBicho = vestirBicho(svgBase, nivelDe(datosMundo(estado.filas).entrenos).nivel, ES_CUMPLE(hoyIso()));
   if (estado.vista === 'hoy') pintarHoy();
   else if (estado.vista === 'mundo') pintarMundo(objetivoSemanal());
-  else if (estado.vista === 'carlitos') pintarCarlitos();
+  else if (estado.vista === 'carlitos' && CARLITOS_VISIBLE) pintarCarlitos();
   else pintarProgreso();
   pintarDescanso();
   pintarPendiente();
@@ -1323,7 +1326,7 @@ document.addEventListener('pointerup', (ev) => {
 document.addEventListener('click', (ev) => {
   const t = ev.target.closest('button');
   if (!t) return;
-  if (t.hasAttribute('data-cx-abrir')) { guardarBorrador(); estado.vista = 'carlitos'; $('#pantalla').scrollTo(0, 0); return pintar(); }
+  if (t.hasAttribute('data-cx-abrir') && CARLITOS_VISIBLE) { guardarBorrador(); estado.vista = 'carlitos'; $('#pantalla').scrollTo(0, 0); return pintar(); }
   if (t.dataset.cx) return undefined;
   if (t.dataset.ver) { guardarBorrador(); estado.vista = t.dataset.ver; $('#pantalla').scrollTo(0, 0); return pintar(); }
   if (t.dataset.dia) { guardarBorrador(); estado.dia = +t.dataset.dia; estado.ejercicio = null; return pintar(); }

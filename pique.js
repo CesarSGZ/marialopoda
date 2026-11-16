@@ -121,7 +121,7 @@ function lineasPique() {
     }
     if (d.yoAntes !== null && d.elAntes !== null && d.yoAntes !== d.elAntes) out.push(d.yoAntes > d.elAntes ? `La semana pasada ganaste el duelo: ${signo(d.yoAntes)} frente al ${signo(d.elAntes)} de Cesarlópodo. 👑` : `La semana pasada ganó Cesarlópodo el duelo (${signo(d.elAntes)} frente a tu ${signo(d.yoAntes)}). Esta es la revancha.`);
     if (T.week || M.week) out.push(`Peso movido esta semana: tú ${peso(M.week)}, Cesarlópodo ${peso(T.week)}.`);
-    if (T.week + M.week >= 1000) out.push(`Entre los dos lleváis ${peso(T.week + M.week)} esta semana: lo que pesan ${miles((T.week + M.week) / 9)} carlitos. 🐶`);
+    if (T.week + M.week >= 1000) out.push(`Entre los dos lleváis ${peso(T.week + M.week)} esta semana: lo que pesan ${miles((T.week + M.week) / 9)} perros salchicha. 🐶`);
     if (T.perSession && M.perSession) out.push(`Por entreno, este mes: tú mueves ${peso(M.perSession)} y Cesarlópodo ${peso(T.perSession)}.`);
     if (T.best && M.best) out.push(`Vuestro entreno más pesado de la semana: el tuyo, ${peso(M.best.kg)}; el de Cesarlópodo, ${peso(T.best.kg)}.`);
     if (T.top) out.push(`Lo que más ha cargado Cesarlópodo esta semana: ${T.top.ejercicio.toLowerCase()}, ${peso(T.top.kg)} en total.`);
