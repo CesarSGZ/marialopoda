@@ -19,7 +19,7 @@ function datosMundo(filas) {
   const fechas = [...new Set(filas.filter((f) => f[F.EJ] !== 'Caminadora').map((f) => f[F.FECHA]))].filter((x) => /^\d{4}-\d{2}-\d{2}$/.test(x)).sort();
   const semanas = new Map();
   fechas.forEach((f) => { const l = lunesDe(f); semanas.set(l, (semanas.get(l) || 0) + 1); });
-  const kilos = filas.reduce((s, f) => s + (+f[F.KG] || 0) * (+f[F.REPS] || 0), 0);
+  const kilos = filas.reduce((s, f) => s + kilosMovidos(f), 0);
   memoMundo = { clave, datos: { fechas, semanas, entrenos: fechas.length, toneladas: kilos / 1000 } };
   return memoMundo.datos;
 }

@@ -53,8 +53,9 @@ function toneladasDe(filas, hoy) {
   for (const f of filas) {
     const kg = +f[F.KG] || 0, reps = +f[F.REPS] || 0;
     if (kg <= 0 || reps <= 0 || f[F.FECHA] > hoy) continue;
-    porDia.set(f[F.FECHA], (porDia.get(f[F.FECHA]) || 0) + kg * reps);
-    if (f[F.FECHA] >= lunes) porEj.set(f[F.EJ], (porEj.get(f[F.EJ]) || 0) + kg * reps);
+    const movido = kg * reps * ladosDe(f[F.EJ]);
+    porDia.set(f[F.FECHA], (porDia.get(f[F.FECHA]) || 0) + movido);
+    if (f[F.FECHA] >= lunes) porEj.set(f[F.EJ], (porEj.get(f[F.EJ]) || 0) + movido);
   }
   const t = (de, a = hoy) => Math.round([...porDia].reduce((s, [d, v]) => (d >= de && d <= a ? s + v : s), 0));
   const dia = Math.round((new Date(hoy) - new Date(lunes)) / 864e5);

@@ -644,7 +644,12 @@ function celebrar(ej, kg, reps, porPeso) {
 }
 
 // Lo que celebrar al acabar: récords de hoy, frente a la última vez de este día y cuánto ha durado.
-const volumenDe = (filas) => filas.reduce((s, f) => s + (+f[F.KG] || 0) * (+f[F.REPS] || 0), 0);
+// Un lado cada vez (una pierna, un brazo, una mancuerna): se apunta el peso de un lado y se mueve dos veces.
+// La misma regla que sidesOf() en el servidor del pique.
+const POR_LADO = /unilateral|individual|una pierna|un brazo|mancuerna|dumbbell|b[uú]lgara|step ?up|patada|femoral de pie|elevaciones laterales|zancada|^remo medio · tg\b/i, NO_POR_LADO = /peso muerto con mancuerna|dumbbell extension(?!.*unilateral)|goma/i;
+const ladosDe = (ej) => (POR_LADO.test(String(ej)) && !NO_POR_LADO.test(String(ej)) ? 2 : 1);
+const kilosMovidos = (f) => (+f[F.KG] || 0) * (+f[F.REPS] || 0) * ladosDe(f[F.EJ]);
+const volumenDe = (filas) => filas.reduce((s, f) => s + kilosMovidos(f), 0);
 const horaDeId = (id) => (/^a[0-9a-z]{6,}$/.test(String(id)) ? parseInt(String(id).slice(1, -5), 36) : null);
 function logrosDeHoy(hoy) {
   const nombres = [...new Set(hoy.map((f) => f[F.EJ]))].filter((n) => !SIN_LASTRE[n] && !ES_MEDIDO.has(n));
@@ -666,7 +671,7 @@ function logrosDeHoy(hoy) {
 
 function terminar() {
   const hoy = estado.filas.filter((f) => f[F.FECHA] === hoyIso() && f[F.EJ] !== CAMINADORA);
-  const total = hoy.reduce((s, f) => s + (+f[F.KG]) * (+f[F.REPS] || 0), 0);
+  const total = hoy.reduce((s, f) => s + kilosMovidos(f), 0);
   const metros = hoy.filter((f) => ES_MEDIDO.has(f[F.EJ])).reduce((s, f) => s + (+f[F.REPS] || 0), 0);
   const caminatas = caminatasDeHoy().map(datosCaminata);
   const minCamina = caminatas.reduce((s, c) => s + c.min, 0), kmCamina = caminatas.reduce((s, c) => s + c.km, 0);
@@ -987,7 +992,7 @@ function pintarProgreso() {
   const fechas = new Set(deFuerza.map((f) => f[F.FECHA].slice(0, 10)));
   const primeraF = [...fechas].sort()[0];
   const semanas = Math.max(1, Math.round((new Date(hoyIso()) - new Date(primeraF)) / 6048e5));
-  const totalKg = estado.filas.reduce((s, f) => s + (+f[F.KG]) * (+f[F.REPS] || 0), 0);
+  const totalKg = estado.filas.reduce((s, f) => s + kilosMovidos(f), 0);
   const conRecord = lista.filter((e) => e.sube > 0).length;
   if (!estado.musculo || !orden.includes(estado.musculo)) estado.musculo = orden[0];
   const delMusculo = lista.filter((e) => e.musc === estado.musculo).sort((a, b) => b.n - a.n);
