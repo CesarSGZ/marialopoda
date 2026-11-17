@@ -79,6 +79,7 @@ function miResumen() {
   while (racha < 200 && tieneSemana(l)) { racha++; l = desplazar(l, -7); }
   const porEj = new Map();
   for (const f of pesas) {
+    if (SIN_LASTRE[f[F.EJ]]) continue; // sus kilos son solo el lastre: un par de kilos parecerían un salto enorme
     const v = e1rmDe(+f[F.KG], +f[F.REPS]);
     if (!v) continue;
     const e = porEj.get(f[F.EJ]) || { antes: 0, ahora: 0 };
