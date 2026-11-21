@@ -47,6 +47,7 @@
     const L = LARGO[e?.stage] || LARGO.cachorro, puesto = (e?.worn || ['collar']);
     const cabeza = e?.stage === 'cachorro' ? 1.14 : e?.stage === 'joven' ? 1.06 : 1;
     const xb = 78 + L, ancho = xb + 46, dormido = op.dormido, feliz = e?.mood === 'feliz' || e?.mood === 'contento';
+    const duele = new Set((e?.ailments || []).map((a) => a.part));
     const pata = (x, lejos, clase) => `<g class="cx-pata ${clase || ''}" style="transform-origin:${x + 6}px 114px"><rect x="${x}" y="110" width="13" height="32" rx="6.5" fill="${lejos ? C.lejos : C.pelo}"/><ellipse cx="${x + 5}" cy="143" rx="9" ry="5" fill="${lejos ? '#A86330' : C.fuego}"/></g>`;
     const cuerpo = puesto.filter((id) => ORDEN.includes(id)).map((id) => accesorio(id, L)).join('');
     const resto = puesto.filter((id) => !ORDEN.includes(id)).map((id) => accesorio(id, L)).join('');
@@ -76,9 +77,13 @@
           <ellipse cx="61" cy="52" rx="5.5" ry="3.8" fill="${C.fuego}"/>
           ${ojo}
           <ellipse cx="49" cy="80" rx="6" ry="3.4" fill="${C.rosa}" opacity=".45"/>
-          <g class="cx-oreja" style="transform-origin:78px 50px"><path d="M74 46 C99 44 106 72 101 98 C98 112 82 111 80 99 C76 82 69 62 74 46 Z" fill="${C.lejos}"/><path d="M80 54 C94 56 98 76 95 94" stroke="${C.pelo2}" stroke-width="3" fill="none" opacity=".6"/></g>
+          <g class="cx-oreja${duele.has('hombros') ? ' cx-caida' : ''}" style="transform-origin:78px 50px"><path d="M74 46 C99 44 106 72 101 98 C98 112 82 111 80 99 C76 82 69 62 74 46 Z" fill="${C.lejos}"/><path d="M80 54 C94 56 98 76 95 94" stroke="${C.pelo2}" stroke-width="3" fill="none" opacity=".6"/></g>
           ${resto}
+          ${e?.fever ? '<g class="cx-termo"><rect x="22" y="86" width="22" height="4" rx="2" fill="#fff" stroke="#9AA" stroke-width=".8" transform="rotate(-18 22 88)"/><circle cx="22" cy="92" r="3" fill="#E5344B"/></g>' : ''}
         </g>
+        ${duele.has('piernas') ? `<g class="cx-tirita"><rect x="${xb - 37}" y="124" width="19" height="7" rx="3" fill="#F6D2A8" stroke="#D9A877" stroke-width=".8" transform="rotate(-12 ${xb - 28} 127)"/><path d="M${xb - 31} 124.5 l3 6 M${xb - 27} 123.5 l3 6" stroke="#D9A877" stroke-width=".8"/></g>` : ''}
+        ${duele.has('brazos') ? '<g class="cx-tirita"><rect x="83" y="122" width="19" height="7" rx="3" fill="#F6D2A8" stroke="#D9A877" stroke-width=".8" transform="rotate(10 92 125)"/></g>' : ''}
+        ${duele.has('espalda') ? `<path d="M${78 + L / 2 - 12} 72 q12 -8 24 0" stroke="#FF8FB8" stroke-width="3" fill="none" stroke-linecap="round" opacity=".8"/>` : ''}
       </g>
       ${op.pesa ? '<g class="cx-pesa"><rect x="8" y="58" width="44" height="5" rx="2" fill="#777"/><rect x="2" y="48" width="9" height="25" rx="3" fill="#444"/><rect x="49" y="48" width="9" height="25" rx="3" fill="#444"/></g>' : ''}
     </svg>`;
@@ -114,6 +119,10 @@
     if (!sem[o] && sem[v] && dia >= 2) l.push(`Carlitos mira la puerta. ${NOMBRE[o]} aún no ha entrenado esta semana.`);
     if (sem.cesar && sem.maria) l.push('Esta semana ya habéis entrenado los dos. Carlitos está orgullosísimo.');
     if (e.hunger < 35) l.push('A Carlitos le suenan las tripas. Un entreno le da croquetas.');
+    const mio = (e.ailments || []).find((a) => a.who === v), suyo = (e.ailments || []).find((a) => a.who === o);
+    if (mio) l.push(`Carlitos ${mio.text}. Llevas ${mio.days} días sin entrenar ${mio.name}: con un entreno se cura.`);
+    if (suyo) l.push(`Carlitos ${suyo.text}. ${NOMBRE[o]} lleva ${suyo.days} días sin entrenar ${suyo.name}. Díselo con cariño.`);
+    if (e.fever) l.push('Carlitos tiene fiebre de sofá. Un entreno de cualquiera de los dos y se le pasa.');
     if (e.love < 30) l.push('Carlitos se ha tumbado panza arriba. Pide mimos.');
     if (e.event && !e.event.done) l.push(`${e.event.title}: ${e.event.text}`);
     if (e.event?.done) l.push(`¡${e.event.title} superada! Carlitos no para de mover la cola.`);
@@ -158,6 +167,7 @@
         <div><span>💗 Cariño</span>${barra(e.love / 100, e.love < 30 ? '#E5344B' : '#FF7DB0')}</div>
       </div>
       <p class="cx-animo">${esc(ANIMO[e.mood] || '')}</p>
+      ${salud(e, v)}
       <div class="cx-acciones">
         <button type="button" class="cx-boton" data-cx="mimo"${e.left?.[v]?.mimo ? '' : ' data-agotado'}>💗 Mimos</button>
         <button type="button" class="cx-boton" data-cx="golosina"${e.bones >= 4 && e.left?.[v]?.golosina ? '' : ' data-agotado'}>🍪 Golosina <small>🦴 4</small></button>
@@ -194,6 +204,16 @@
       </details>
       ${(e.messages || []).length ? `<details class="cx-tarjeta"><summary>✉️ Notas de los dos</summary><ul class="cx-diario">${e.messages.slice().reverse().map((m) => `<li><span>${m.from === v ? '📤' : '📥'}</span><p>${esc(m.text)}<small>${m.from === v ? `Para ${NOMBRE[o]}` : `De ${NOMBRE[m.from]}`} · ${fecha(m.d)}</small></p></li>`).join('')}</ul></details>` : ''}
     </div>`;
+  }
+
+  // What hurts and why: every part of the body each of you trains regularly is a part of him.
+  function salud(e, v) {
+    const l = e.ailments || [];
+    if (!l.length && !e.fever) return '<section class="cx-tarjeta cx-salud bien"><h3>🩺 Salud</h3><p>Carlitos está sanísimo: habéis entrenado todo lo que soléis entrenar.</p></section>';
+    return `<section class="cx-tarjeta cx-salud"><h3>🩺 Salud</h3>
+      ${e.fever ? '<p>🤒 <b>Tiene fiebre de sofá:</b> nadie ha entrenado en una semana. Con un entreno de cualquiera se le pasa.</p>' : ''}
+      ${l.map((a) => `<p>${a.icon} <b>${esc(a.text.charAt(0).toUpperCase() + a.text.slice(1))}</b>: ${a.who === v ? 'llevas' : `${NOMBRE[a.who]} lleva`} ${a.days} días sin entrenar ${esc(a.name)}.</p>`).join('')}
+      <p class="cx-suave">Se cura en cuanto se entrena esa parte. Nunca se pone peor que malito.</p></section>`;
   }
 
   // What each one does that brings them closer, once a day each.
@@ -234,6 +254,8 @@
     else if (entrevista && v === 'cesar' && visto !== entrevista.fecha + entrevista.text) texto = '¡Marialópoda tiene una entrevista! Mándale ánimo con Carlitos. 🤝';
     else if (e.visit && e.visit.days <= 7) texto = `Faltan ${e.visit.days === 1 ? 'un día' : `${e.visit.days} días`} para veros. Carlitos ya tiene la maleta hecha. 🧳`;
     else if (e.season?.id === 'cumple') texto = '¡Hoy es el cumpleaños de Carlitos! 🎂';
+    else if (e.fever) texto = 'Carlitos tiene fiebre de sofá: nadie entrena desde hace una semana. 🤒';
+    else if ((e.ailments || []).some((a) => a.who === v && a.bad)) { const a = e.ailments.find((x) => x.who === v && x.bad); texto = `Carlitos ${a.text}: llevas ${a.days} días sin ${a.name}. 🩹`; }
     else if (!e.week?.[v] && dia >= 3) texto = 'Carlitos te espera: esta semana aún no has entrenado.';
     else if (e.diary?.[0] && e.diary[0].fecha + e.diary[0].text !== visto && e.diary[0].fecha >= shiftIso(e.today, -2)) texto = e.diary[0].text;
     else if (e.golden) texto = 'Hoy Carlitos brilla: día dorado. Un entreno vale huesitos extra. ✨';
@@ -402,6 +424,10 @@
   .cx-vale{padding:10px 12px;border-radius:12px;background:rgba(255,197,49,.14);border:1px dashed #FFC531;display:flex;flex-direction:column;gap:6px}
   .cx-vale.usado{opacity:.5;text-decoration:line-through}
   .cx-fila{display:flex;gap:8px;align-items:center}
+  .cx-salud p{margin:6px 0}
+  .cx-salud.bien{border-color:#22B573}
+  .cx-oreja.cx-caida{animation:none;transform:rotate(14deg)}
+  .cx-termo{animation:cx-zzz 2.4s ease-in-out infinite}
   .cx-fecha{min-height:44px;margin:0;flex:1;color-scheme:dark}
   .cx-visita h3{font-size:20px}
   .cx-hecho{opacity:.8;border-style:solid;border-color:#22B573}
