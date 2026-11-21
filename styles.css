@@ -708,3 +708,10 @@ button.notita { background: linear-gradient(135deg, #FFF4F8, #FFE0EC); }
 .dias-comida .dia-fuera em { background: rgba(229, 52, 75, .25); }
 .dias-comida .dia-sospechoso em { background: rgba(255, 197, 49, .25); }
 .como-se-calcula p { font-size: 14px; color: var(--tinta-2); }
+
+.titular-salud { margin: 0 0 12px; padding: 14px 16px; border-radius: 18px; background: linear-gradient(135deg, var(--chicle), #FF9CC4); color: var(--berenjena); }
+.titular-salud b { display: block; font-family: 'Bagel', 'Figtree', sans-serif; font-weight: 400; font-size: 22px; line-height: 1.15; }
+.titular-salud span { display: block; margin-top: 4px; font-weight: 600; font-size: 15px; }
+.sub-salud { margin: 16px 0 4px; font-size: 17px; }
+.ideas-salud { list-style: none; margin: 6px 0 12px; padding: 0; display: grid; gap: 8px; }
+.ideas-salud li { padding: 10px 12px; border-radius: 14px; background: var(--berenjena); line-height: 1.45; font-size: 15px; }
