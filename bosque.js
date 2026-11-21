@@ -243,6 +243,34 @@ function escenaBosque(semanas, hasta, esActual, objetivo, hora = new Date().getH
   </svg>`;
 }
 
+// ---------- Que el bosque no vaya a tirones ----------
+// En el móvil, cualquier cosa que se mueva dentro del SVG obliga a repintar el bosque entero (más de mil piezas) en cada
+// fotograma. Lo que no se mueve se pinta una sola vez como imagen de fondo y en el SVG vivo solo quedan los animales, lo
+// animado y los árboles invisibles (para poder tocarlos).
+const ANIMADO = '.nube,.aurora,.caida,.espuma,.fluye,.humo,.chorro,.noria,.sube-baja,.pajaro,.revolotea,.zumba,.luz,.petalo,.titila-b,.crece,.mece,.velo,.capa-fx,.capa-brotes,.hueco';
+const DEFS = /^(defs|linearGradient|radialGradient|symbol|clipPath|mask|pattern|filter|style)$/;
+let fondoBosque = null;
+function separarCapas(svg) {
+  if (!svg || svg.dataset.capas) return;
+  const copia = svg.cloneNode(true);
+  copia.querySelectorAll(ANIMADO).forEach((el) => el.remove());
+  copia.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  copia.removeAttribute('class'); copia.setAttribute('width', ANCHO); copia.setAttribute('height', ALTO);
+  if (fondoBosque) URL.revokeObjectURL(fondoBosque);
+  fondoBosque = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(copia)], { type: 'image/svg+xml' }));
+  const ocultar = (padre) => {
+    for (const el of padre.children) {
+      if (DEFS.test(el.tagName) || el.matches(ANIMADO)) continue;
+      if (el.querySelector(ANIMADO)) ocultar(el);
+      else if (el.matches('[data-semana]')) el.classList.add('fantasma');
+      else el.style.visibility = 'hidden';
+    }
+  };
+  ocultar(svg);
+  svg.style.background = `url("${fondoBosque}") center / 100% 100% no-repeat`;
+  svg.dataset.capas = '1';
+}
+
 function semanasOrdenadas() {
   return [...datosMundo(estado.filas).semanas].sort((a, b) => (a[0] < b[0] ? -1 : 1));
 }

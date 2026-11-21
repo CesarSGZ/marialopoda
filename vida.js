@@ -224,6 +224,8 @@ function sacudir(t) {
   const el = t.el;
   if (!el) return;
   el.classList.remove('sacude'); void el.getBBox(); el.classList.add('sacude');
+  // El árbol vive en la imagen de fondo: mientras se sacude se ve el de verdad.
+  el.classList.remove('fantasma'); clearTimeout(el.cronoFantasma); el.cronoFantasma = setTimeout(() => el.classList.add('fantasma'), 900);
   const color = elige(['#3DBF6E', '#FFC531', '#FF9DC4']);
   for (let i = 0; i < 3; i++) chispa(t.x + entre(-14, 14) * t.s, t.y - 44 * t.s, entre(-8, 8), 2, color, 1.3, 1200, 38 * t.s);
 }
@@ -341,6 +343,7 @@ function iniciarVida(entrenos, quietos) {
   pararVida();
   const caja = document.getElementById('escena-bosque'), svg = caja && caja.querySelector('svg');
   if (!svg) return;
+  if (!cronoBosque) separarCapas(svg);
   const hueco = svg.querySelectorAll('.hueco');
   vida = { svg, huecos: [...hueco], capaFx: svg.querySelector('.capa-fx'), capaBrotes: svg.querySelector('.capa-brotes'), rio: entrenos >= 300, puente: entrenos >= 500, casa: entrenos >= 500, noche: svg.dataset.momento === 'noche', bichos: [], visible: true, ultimo: performance.now(),
     arboles: [...svg.querySelectorAll('[data-semana]')].map((el) => ({ el, x: +el.dataset.x, y: +el.dataset.y, s: +el.dataset.s })) };

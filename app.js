@@ -343,6 +343,7 @@ function pintarHoy() {
       <button class="bicho" type="button" aria-label="Saludar a Marialópoda" data-accion="bicho">${svgBicho}</button>
     </div>
     ${pintarPique()}
+    ${pintarNotita()}
     ${CARLITOS_VISIBLE && typeof Carlitos !== 'undefined' ? Carlitos.tira(estado.carlitos, 'maria') : ''}
     <h1 class="gorda titulo-dia">Día ${estado.dia}, ${lista.length && lista[0].nombre === 'Mini entreno' ? 'mini entreno' : esc(dia.nombre.toLowerCase())}</h1>
     <div class="dias" role="group" aria-label="Elegir día">
@@ -720,6 +721,27 @@ function terminar() {
   comprobarLogros();
   cartaDeLaSemana();
   setTimeout(traerPique, 5000);
+}
+
+// ---------- La notita del día ----------
+// Cada día, una notita de Cesarlópodo en un sobre cerrado. Salen en orden y no se repiten hasta acabarse.
+function notitaDeHoy() {
+  const hoy = hoyIso(), n = leer('notitaN', 0);
+  return { abierta: leer('notitaDia', '') === hoy, texto: FRASES.notitas[(leer('notitaDia', '') === hoy ? n - 1 : n) % FRASES.notitas.length] };
+}
+function pintarNotita() {
+  const x = notitaDeHoy();
+  return x.abierta
+    ? `<div class="notita abierta"><small>💌 Notita de Cesarlópodo</small>${esc(x.texto)}</div>`
+    : '<button type="button" class="notita" data-accion="notita"><small>💌 Tienes una notita de Cesarlópodo</small>Toca para abrirla</button>';
+}
+function abrirNotita(el) {
+  guardar('notitaN', leer('notitaN', 0) + 1);
+  guardar('notitaDia', hoyIso());
+  el.outerHTML = pintarNotita();
+  const caja = document.querySelector('.notita.abierta');
+  if (caja) { caja.classList.add('se-abre'); const r = caja.getBoundingClientRect(); for (let i = 0; i < 5; i++) setTimeout(() => flotar(azar(['💗', '💕', '💖', '🌻']), r.left + r.width * (0.2 + i * 0.15), r.top + 10), i * 120); }
+  vibrar([15, 40, 15]);
 }
 
 // ---------- Sorpresas al terminar ----------
@@ -1373,6 +1395,7 @@ document.addEventListener('click', (ev) => {
     case 'hecha': return serieHecha();
     case 'hace': { estado.haceVez = (estado.haceVez || 0) + 1; const el = document.querySelector('.hace'); if (el) el.outerHTML = pintarHace(haceUnAno(resumenes().lista)); return undefined; }
     case 'pique': estado.piqueVez = (estado.piqueVez || 0) + 1; return pintar();
+    case 'notita': return abrirNotita(t);
     case 'tests': return abrirTests();
     case 'circuito': planHoy().circuito = true; guardarPlan(); estado.ejercicio = null; return pintar();
     case 'sin-circuito': planHoy().circuito = false; guardarPlan(); estado.ejercicio = null; return pintar();
