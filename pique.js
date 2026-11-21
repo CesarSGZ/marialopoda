@@ -64,8 +64,13 @@ function toneladasDe(filas, hoy) {
   const top = [...porEj].sort((x, y) => y[1] - x[1])[0];
   const sesiones = [...porDia.keys()].filter((d) => d >= desplazar(hoy, -29)).length;
   const anterior = desplazar(lunes, -7);
+  // Completo desde lo primero apuntado en la app; el duelo necesita cuatro semanas enteras antes (igual que el servidor).
+  const since = filas.filter((f) => f[F.ORIGEN] === 'app').reduce((a, f) => (!a || f[F.FECHA] < a ? f[F.FECHA] : a), null);
+  const completo = (ini) => Boolean(since) && lunesDe(since) <= desplazar(ini, -28);
+  const daily = {};
+  for (const [d, v] of porDia) if (d >= desplazar(hoy, -364)) daily[d] = Math.round(v);
   return {
-    week: t(lunes), pace: ritmo(lunes, dia), lastWeek: t(anterior, desplazar(lunes, -1)), lastPace: ritmo(anterior, 6),
+    week: t(lunes), pace: completo(lunes) ? ritmo(lunes, dia) : null, lastWeek: t(anterior, desplazar(lunes, -1)), lastPace: completo(anterior) ? ritmo(anterior, 6) : null, since, daily,
     month: t(desplazar(hoy, -29)), year: t(desplazar(hoy, -364)), perSession: sesiones ? Math.round(t(desplazar(hoy, -29)) / sesiones) : 0,
     best: mejor ? { fecha: mejor[0], kg: Math.round(mejor[1]) } : null, top: top ? { ejercicio: top[0], kg: Math.round(top[1]) } : null
   };
@@ -100,6 +105,13 @@ const peso = (kg) => (kg >= 100000 ? `${miles(kg / 1000)} t` : kg >= 1000 ? `${n
 // Cuánto va cada uno por encima o por debajo de su propio ritmo; null si aún no hay con qué comparar o aún no ha empezado.
 const frenteASi = (actual, ritmo) => (ritmo > 0 && actual > 0 ? Math.round((actual / ritmo - 1) * 100) : null);
 const signo = (p) => `${p > 0 ? '+' : p < 0 ? '−' : ''}${Math.abs(p)} %`;
+// En un mes o un año, solo los días que los dos tenéis apuntados enteros: antes, el registro de Cesarlópodo solo guardaba
+// los días en que cambiaba de objetivo, y comparar eso con el tuyo no sería justo.
+function justo(dias, M, T) {
+  const normal = desplazar(hoyIso(), -(dias - 1)), inicio = [normal, M.since, T.since].filter(Boolean).sort().pop();
+  const suma = (d) => Object.entries(d || {}).reduce((s, [f, v]) => (f >= inicio ? s + v : s), 0);
+  return { inicio, yo: suma(M.daily), el: suma(T.daily), corte: inicio > normal };
+}
 function dueloSemana() {
   const C = estado.pique, yo = miResumen();
   if (!C || !C.tonnage) return null;
@@ -128,8 +140,9 @@ function lineasPique() {
     if (T.best && M.best) out.push(`Vuestro entreno más pesado de la semana: el tuyo, ${peso(M.best.kg)}; el de Cesarlópodo, ${peso(T.best.kg)}.`);
     if (T.top) out.push(`Lo que más ha cargado Cesarlópodo esta semana: ${T.top.ejercicio.toLowerCase()}, ${peso(T.top.kg)} en total.`);
     if (M.top) out.push(`Tu ejercicio estrella de la semana: ${M.top.ejercicio.toLowerCase()}, ${peso(M.top.kg)} movidos. 🌻`);
-    if (T.month && M.month) out.push(`Último mes: tú ${peso(M.month)}, Cesarlópodo ${peso(T.month)}. Juntos, ${num(Math.round((T.month + M.month) / 500) / 10)} elefantes. 🐘`);
-    if (T.year && M.year) out.push(`En el último año habéis movido ${peso(T.year + M.year)} entre los dos. Tú, ${peso(M.year)}.`);
+    const mes = justo(30, M, T), ano = justo(365, M, T);
+    if (mes.yo && mes.el) out.push(`${mes.corte ? `Desde el ${fechaCorta(mes.inicio).slice(0, -3)}, que lo apuntáis todo` : 'Último mes'}: tú ${peso(mes.yo)}, Cesarlópodo ${peso(mes.el)}. Juntos, ${num(Math.round((mes.yo + mes.el) / 500) / 10)} elefantes. 🐘`);
+    if (ano.inicio < mes.inicio && ano.yo && ano.el) out.push(`En el último año habéis movido ${peso(ano.yo + ano.el)} entre los dos. Tú, ${peso(ano.yo)}.`);
   }
   const rec = C.records && C.records[0];
   if (rec) out.push(`Cesarlópodo se ha superado en ${rec.ejercicio}: ${rec.reps} × ${num(rec.kg)} kg, un ${num(rec.mejora)} % más que su mejor marca. Te toca superarte a ti.`);
@@ -164,13 +177,13 @@ function pintarPiqueTabla() {
   return `<h2 class="gorda seccion">Pique con Cesarlópodo</h2>
     <p class="pie">El duelo de la semana compara lo que mueve cada uno con su propia media de las cuatro semanas anteriores, a estas alturas de la semana. Así gana quien más se supera, entrene los días que entrene.</p>
     <div class="duelo-semana">${caja('Tú', d.yo, d.el)}${caja('Cesarlópodo', d.el, d.yo)}</div>
+    ${d.yo === null || d.el === null ? `<p class="pie">El duelo empieza cuando los dos tengáis cuatro semanas enteras apuntadas en la app${T.since ? `: a partir del ${fechaCorta(desplazar([M.since, T.since].filter(Boolean).sort().pop(), 28)).slice(0, -3)}` : ''}.</p>` : ''}
     <table class="pique-tabla"><thead><tr><th></th><th>Tú</th><th>Cesarlópodo</th></tr></thead><tbody>
       ${fila('Esta semana', M.week, T.week)}
       ${fila('Semana pasada', M.lastWeek, T.lastWeek)}
       ${fila('Por entreno (mes)', M.perSession, T.perSession)}
       ${fila('Entreno más pesado', M.best ? M.best.kg : 0, T.best ? T.best.kg : 0)}
-      ${fila('Último mes', M.month, T.month)}
-      ${fila('Último año', M.year, T.year)}
+      ${(() => { const m = justo(30, M, T), a = justo(365, M, T); return `${fila(m.corte ? `Desde el ${fechaCorta(m.inicio).slice(0, -3)}` : 'Último mes', m.yo, m.el)}${a.inicio < m.inicio ? fila('Último año', a.yo, a.el) : ''}`; })()}
       ${fila('Marcas superadas (2 sem.)', yo.records, (C.records || []).length, (v) => miles(v))}
       ${fila('Caminadora (semana)', yo.km, C.walkWeek, (v) => `${num(v)} km`)}
       ${fila('Semanas seguidas', yo.racha, C.streak, (v) => miles(v))}
