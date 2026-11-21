@@ -52,6 +52,7 @@ const estado = {
   medidas: leer('medidas', {}),
   pique: leer('pique', null),
   carlitos: leer('carlitos', null),
+  salud: leer('salud', null),
   serieElegida: {},
   verMas: false,
   editando: null,
@@ -1034,6 +1035,7 @@ function pintarProgreso() {
     ${pintarSinEntrenar(orden)}
     ${pintarUltimoAno()}
     ${pintarPiqueTabla()}
+    ${pintarSalud()}
     <h2 class="gorda seccion">Por músculo</h2>
     <div class="chips" role="group" aria-label="Elegir músculo">
       ${orden.map((o) => `<button type="button" data-musculo="${esc(o)}" aria-pressed="${o === estado.musculo}">${esc(o)}</button>`).join('')}
@@ -1376,6 +1378,7 @@ document.addEventListener('click', (ev) => {
   if (t.dataset.evolucion) { estado.evolucion = t.dataset.evolucion; return pintarEvolucionCircuito(); }
   if (t.dataset.caminata) return abrirCaminadora(t.dataset.caminata);
   if (t.dataset.test) return empezarTest(t.dataset.test);
+  if (t.dataset.objetivo) return guardarObjetivo(t.dataset.objetivo);
   if (t.dataset.cam) return pasoCaminadora(t.dataset.cam, +t.dataset.v);
   if (t.dataset.pasoMedida) {
     guardarBorrador();
@@ -1454,7 +1457,7 @@ async function arrancar() {
     await subirCola();
     const ok = await descargar();
     if (estado.errorClave) { estado.codigo = null; guardar('codigo', null); return pintarBienvenida(); }
-    if (ok) { guardarBorrador(); const activo = document.activeElement; if (!activo || !activo.matches('input, textarea')) pintar(); comprobarLogros(); traerPique(); }
+    if (ok) { guardarBorrador(); const activo = document.activeElement; if (!activo || !activo.matches('input, textarea')) pintar(); comprobarLogros(); traerPique(); traerSalud(); }
   } catch (e) { /* sin red: se usa lo guardado */ }
   return undefined;
 }
