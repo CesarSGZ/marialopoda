@@ -1,6 +1,6 @@
 'use strict';
 // ---------- Comida, peso y pasos ----------
-// Llegan de Salud del iPhone (MyFitnessPal, Libra y el Apple Watch escriben allí) a través de Health Auto Export, que los
+// Llegan de Salud del iPhone (MyFitnessPal, Libra y el Apple Watch escriben allí) con un atajo de la app Atajos, que los
 // manda al servidor de Cesarlópodo. Aquí se cruzan con sus entrenos y se convierten en un análisis con consejos.
 const SALUD_URL = 'https://cesar-solla.pages.dev/api/salud';
 const KCAL_KG = 7700;                 // calorías en un kilo de peso corporal, aproximadamente
