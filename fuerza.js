@@ -57,6 +57,21 @@ const MUSCULOS = [
   { id: 'gemelo', nombre: 'Gemelos', ej: [['Gemelos', 'gemelo']] },
   { id: 'abdomen', nombre: 'Abdomen', ej: [] }
 ];
+// Solo cuenta de verdad lo que pesa igual en todos los gimnasios: barra, mancuernas, disco y tu propio peso.
+// Las máquinas y poleas tienen baremo en Strength Level, pero cada una pesa distinto: solas son una estimación (≈)
+// que nunca pasa del 75 %. La misma regla que en la app de Cesarlópodo.
+const LIBRES = new Set(['Press militar con mancuernas', 'Press militar con barra', 'Hombro frontal con disco', 'Elevaciones laterales', 'Press banca',
+  'Bíceps en banco inclinado', 'Extensión de tríceps con mancuerna a dos manos', 'Fondos de tríceps', 'Dominadas', 'Hip thrust', 'Sentadilla',
+  'Búlgaras', 'Peso muerto con mancuernas', 'Peso muerto rumano']);
+const TOPE_MAQUINA = 75;
+const conTope = (p) => (p.libre || p.por <= TOPE_MAQUINA ? p : { ...p, por: TOPE_MAQUINA, nivel: nivelDePor(TOPE_MAQUINA), tope: true });
+const nivelDePor = (por) => (por < 5 ? -1 : [5, 20, 50, 80, 95].reduce((n, t, i) => (por >= t ? i : n), 0));
+// Con peso libre, solo cuenta él; sin él, la media de las máquinas como estimación.
+function combinar(pruebas) {
+  const libres = pruebas.filter((p) => p.libre), base = libres.length ? libres : pruebas;
+  const por = Math.round(base.reduce((s, p) => s + p.por, 0) / base.length);
+  return { por, nivel: nivelDePor(por), estimacion: !libres.length };
+}
 const NOMBRE_NIVEL = ['Principiante', 'Novata', 'Intermedia', 'Avanzada', 'Élite'];
 const TRAMOS = [5, 20, 50, 80, 95];
 
@@ -83,13 +98,10 @@ function fuerzaPorMusculo(peso, hoy) {
   return MUSCULOS.map((m) => {
     const pruebas = m.ej.map(([ej, tipo, factor = 1]) => {
       const rm = marcaDelAno(ej, tipo, factor, desde);
-      return rm ? { ej, rm, repes: DE_REPES.has(tipo), mancuerna: factor !== 1, ...posicionFuerza(rm, baremoPara(tipo, peso)) } : null;
+      return rm ? conTope({ ej, rm, repes: DE_REPES.has(tipo), mancuerna: factor !== 1, libre: LIBRES.has(ej), ...posicionFuerza(rm, baremoPara(tipo, peso)) }) : null;
     }).filter(Boolean).sort((a, b) => b.por - a.por);
     if (!pruebas.length) return { ...m, mejor: null };
-    // Se promedian sus ejercicios: una sola máquina generosa no debe decidir todo el músculo.
-    const por = Math.round(pruebas.reduce((s, p) => s + p.por, 0) / pruebas.length);
-    const nivel = por < TRAMOS[0] ? -1 : TRAMOS.reduce((n, t, i) => (por >= t ? i : n), 0);
-    return { ...m, mejor: { por, nivel, pruebas } };
+    return { ...m, mejor: { ...combinar(pruebas), pruebas } };
   });
 }
 
@@ -296,7 +308,7 @@ function mostrarMusculo(id) {
   document.querySelectorAll('.fuerzas li').forEach((li) => li.classList.toggle('elegido', li.dataset.id === musculoElegido));
   const d = datosFuerza.find((m) => m.id === id);
   if (!musculoElegido || !d) return;
-  decir(d.mejor ? `${d.nombre}: superas al ${d.mejor.por} % de las mujeres que entrenan` : `${d.nombre}: ${d.ej.length ? 'sin datos del último año' : 'todavía sin un ejercicio con el que compararlo'}`);
+  decir(d.mejor ? `${d.nombre}: superas al ${d.mejor.estimacion ? '≈' : ''}${d.mejor.por} % de las mujeres que entrenan${d.mejor.estimacion ? ' (estimación con máquinas)' : ''}` : `${d.nombre}: ${d.ej.length ? 'sin datos del último año' : 'todavía sin un ejercicio con el que compararlo'}`);
   const li = document.querySelector(`.fuerzas li[data-id="${id}"]`);
   if (li) li.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 }
@@ -307,7 +319,7 @@ function pintarCuerpo(peso) {
   const con = datosFuerza.filter((d) => d.mejor).sort((a, b) => b.mejor.por - a.mejor.por);
   const sin = datosFuerza.filter((d) => !d.mejor);
   const estrella = con[0];
-  const textoPrueba = (p) => `${esc(p.ej)}: ${p.repes ? `${miles(p.rm)} repes seguidas` : `1RM de unos ${miles(p.rm)} kg${p.mancuerna ? ' por mancuerna' : ''}`}`;
+  const textoPrueba = (p) => `${esc(p.ej)}: ${p.repes ? `${miles(p.rm)} repes seguidas` : `1RM de unos ${miles(p.rm)} kg${p.mancuerna ? ' por mancuerna' : ''}`}${p.libre ? '' : p.tope ? ' (máquina: tope del 75 %)' : ' (máquina)'}`;
   return `<button type="button" class="otra test-boton" data-accion="tests">💪 Hacer un test de fuerza</button>
     <div class="cuerpo">
       ${estrella ? `<p class="estrella">Tu músculo estrella: <b>${esc(estrella.nombre.toLowerCase())}</b>, por encima del ${estrella.mejor.por} %.</p>` : ''}
@@ -316,11 +328,11 @@ function pintarCuerpo(peso) {
       <div class="leyenda">${NOMBRE_NIVEL.map((n, i) => `<span><i class="n${i + 1}"></i>${n}</span>`).join('')}</div>
     </div>
     <ul class="fuerzas">${con.map((d) => `<li data-id="${d.id}"><button type="button" data-musculo-mapa="${d.id}">
-      <span class="fz-cab"><b>${esc(d.nombre)}</b><span class="fz-dato">Supera al <b>${d.mejor.por} %</b> · ${d.mejor.nivel < 0 ? 'Empezando' : NOMBRE_NIVEL[d.mejor.nivel]}</span></span>
+      <span class="fz-cab"><b>${esc(d.nombre)}</b><span class="fz-dato">Supera al <b>${d.mejor.estimacion ? '≈' : ''}${d.mejor.por} %</b> · ${d.mejor.nivel < 0 ? 'Empezando' : NOMBRE_NIVEL[d.mejor.nivel]}</span></span>
       <span class="fz-barra"><i class="n${d.mejor.nivel + 1}" style="width:${Math.max(3, d.mejor.por)}%"></i>${TRAMOS.slice(1, 4).map((t) => `<em style="left:${t}%"></em>`).join('')}</span>
       <small>${d.mejor.pruebas.map(textoPrueba).join('. ')}</small></button></li>`).join('')}</ul>
     ${sin.length ? `<p class="pie">Sin datos del último año: ${esc(sin.map((d) => d.nombre.toLowerCase()).join(', '))}.</p>` : ''}
-    <p class="pie">Cada músculo usa tu mejor sesión del último año en sus ejercicios (1RM estimado) y promedia la posición de todos ellos. Compara con mujeres de 60 kg que entrenan y registran sus marcas en Strength Level, no con toda la población, que entrena mucho menos. Las máquinas no son iguales en todos los gimnasios: tómalo como orientación. En búlgaras y peso muerto con mancuernas se cuenta que apuntas el total de las dos.</p>`;
+    <p class="pie">Cada músculo usa tu mejor sesión del último año (1RM estimado) y te compara con mujeres de 60 kg que entrenan y registran sus marcas en Strength Level, no con toda la población. Solo cuenta de verdad lo que pesa igual en todos los gimnasios: barra, mancuernas, disco y tu propio peso. Si un músculo tiene alguno de esos, su porcentaje sale solo de ellos. Si solo tiene máquinas o poleas, es una estimación (≈) que nunca pasa del 75 %, porque cada máquina pesa distinto.</p>`;
 }
 
 document.addEventListener('click', (ev) => {
@@ -341,9 +353,9 @@ function posicionEntre(m, peso, desde, hasta, soloEstos) {
     const repes = DE_REPES.has(tipo);
     const medir = (f) => (repes ? (+f[F.REPS] <= 40 ? +f[F.REPS] || 0 : 0) : e1rmDe(+f[F.KG] * factor, +f[F.REPS]));
     const rm = Math.max(0, ...valoresPorFecha(ej, medir).filter((p) => p[0] >= desde && p[0] <= hasta).map((p) => p[1]));
-    return rm ? { ej, ...posicionFuerza(rm, baremoPara(tipo, peso)) } : null;
+    return rm ? conTope({ ej, libre: LIBRES.has(ej), ...posicionFuerza(rm, baremoPara(tipo, peso)) }) : null;
   }).filter(Boolean);
-  return pruebas.length ? { por: Math.round(pruebas.reduce((s, p) => s + p.por, 0) / pruebas.length), pruebas } : null;
+  return pruebas.length ? { ...combinar(pruebas), pruebas } : null;
 }
 
 // El grupo de la pantalla de progreso (Glúteos, Hombros...) en el que se apuntan sus ejercicios.

@@ -208,9 +208,9 @@ function abrirTests() {
   const c = $('#capa');
   c.innerHTML = `<div class="tarjeta sobria" role="dialog" aria-label="Test de fuerza">
     <h2 class="gorda">Test de fuerza</h2>
-    <p>¿Quieres saber de verdad lo fuerte que eres frente a otras mujeres? Las máquinas pesan distinto en cada gimnasio, así que lo fiable son ejercicios con barra, mancuernas o polea.</p>
+    <p>¿Quieres saber de verdad lo fuerte que eres frente a otras mujeres? Las máquinas y poleas pesan distinto en cada gimnasio, así que lo fiable de verdad es la barra, las mancuernas o tu propio peso. Con polea sale una estimación.</p>
     <p>Elige uno: se añade a tu entreno de hoy con 4 series. Calienta en las dos primeras y en las dos últimas busca tu tope para 3 a 6 repes. Con tu mejor serie te digo a cuántas mujeres superas.</p>
-    ${musculos.map((m) => `<h3 class="test-musculo">${esc(m.nombre)} <small>${m.f.mejor ? `superas al ${m.f.mejor.por} %` : 'sin datos'}</small></h3>
+    ${musculos.map((m) => `<h3 class="test-musculo">${esc(m.nombre)} <small>${m.f.mejor ? `superas al ${m.f.mejor.estimacion ? '≈' : ''}${m.f.mejor.por} %` : 'sin datos'}</small></h3>
       <div class="opciones">${TESTS_FUERZA.filter((t) => t[0] === m.id).map((t) => `<button type="button" data-test="${esc(t[1])}"><b>${esc(t[1])}</b><small>${esc(t[2])}</small></button>`).join('')}</div>`).join('')}
     <button type="button" class="secundario" data-accion="cerrar">Ahora no</button>
   </div>`;
@@ -238,12 +238,12 @@ function resultadoTest(r) {
   if (!b) return '';
   const mejor = Math.max(0, ...estado.filas.filter((f) => f[F.EJ] === r.ejercicio && f[F.FECHA] === hoyIso()).map((f) => (DE_REPES.has(b.tipo) ? +f[F.REPS] || 0 : e1rmDe(+f[F.KG] * b.factor, +f[F.REPS]))));
   if (!mejor) return '';
-  const p = posicionFuerza(mejor, baremoPara(b.tipo, PESO_REFERENCIA));
+  const libre = LIBRES.has(r.ejercicio), p = conTope({ libre, ...posicionFuerza(mejor, baremoPara(b.tipo, PESO_REFERENCIA)) });
   return `<div class="tarjeta" role="dialog" aria-label="Resultado del test">
     <div class="bicho salta">${svgBicho}</div>
     <h2 class="gorda">Test de ${esc(b.m.nombre.toLowerCase())}</h2>
-    <p class="cifra">${p.por} %</p>
-    <p>Superas al ${p.por} % de las mujeres que entrenan en ${esc(r.ejercicio.toLowerCase())}: ${DE_REPES.has(b.tipo) ? `${miles(mejor)} repes seguidas` : `1RM estimado de ${miles(mejor)} kg`}, nivel ${p.nivel < 0 ? 'empezando' : NOMBRE_NIVEL[p.nivel].toLowerCase()}.</p>
+    <p class="cifra">${libre ? '' : '≈'}${p.por} %</p>
+    <p>${libre ? '' : 'Estimación con polea o máquina, que nunca pasa del 75 % porque cada una pesa distinto. '}Superas al ${libre ? '' : '≈'}${p.por} % de las mujeres que entrenan en ${esc(r.ejercicio.toLowerCase())}: ${DE_REPES.has(b.tipo) ? `${miles(mejor)} repes seguidas` : `1RM estimado de ${miles(mejor)} kg`}, nivel ${p.nivel < 0 ? 'empezando' : NOMBRE_NIVEL[p.nivel].toLowerCase()}.</p>
     <p>Ya sale en tu mapa de fuerza, en Progreso.</p>
     <button type="button" class="principal" data-accion="cerrar">Seguir</button>
   </div>`;
