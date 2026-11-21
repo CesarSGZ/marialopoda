@@ -693,3 +693,18 @@ button.notita { background: linear-gradient(135deg, #FFF4F8, #FFE0EC); }
 .objetivo-salud label { display: block; margin: 10px 0 4px; font-size: 13px; color: var(--tinta-2); }
 .fila-objetivo { display: flex; gap: 8px; }
 .fila-objetivo input { flex: 1; min-width: 0; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--ciruela-2); background: var(--berenjena); color: var(--tinta); }
+
+.cifras-salud { grid-template-columns: 1fr 1fr; }
+.campos-salud { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.campos-salud label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--tinta-2); margin: 0; }
+.campos-salud input { padding: 10px 12px; border-radius: 12px; border: 1px solid var(--ciruela-2); background: var(--berenjena); color: var(--tinta); min-width: 0; }
+.guardar-salud { width: 100%; margin-top: 10px; padding: 12px; border-radius: 14px; background: var(--chicle); color: var(--berenjena); font-weight: 800; }
+.dias-comida, .como-se-calcula { margin: 12px 0; }
+.dias-comida summary, .como-se-calcula summary { font-weight: 800; cursor: pointer; }
+.dias-comida ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.dias-comida button { width: 100%; display: grid; grid-template-columns: 70px 1fr auto; align-items: center; gap: 8px; padding: 9px 12px; border-radius: 12px; background: var(--berenjena); text-align: left; }
+.dias-comida em { font-style: normal; font-size: 12.5px; font-weight: 700; padding: 3px 8px; border-radius: 99px; background: rgba(34, 181, 115, .2); }
+.dias-comida .dia-fuera { opacity: .6; }
+.dias-comida .dia-fuera em { background: rgba(229, 52, 75, .25); }
+.dias-comida .dia-sospechoso em { background: rgba(255, 197, 49, .25); }
+.como-se-calcula p { font-size: 14px; color: var(--tinta-2); }

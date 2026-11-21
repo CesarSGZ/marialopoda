@@ -1378,7 +1378,8 @@ document.addEventListener('click', (ev) => {
   if (t.dataset.evolucion) { estado.evolucion = t.dataset.evolucion; return pintarEvolucionCircuito(); }
   if (t.dataset.caminata) return abrirCaminadora(t.dataset.caminata);
   if (t.dataset.test) return empezarTest(t.dataset.test);
-  if (t.dataset.objetivo) return guardarObjetivo(t.dataset.objetivo);
+  if (t.dataset.objetivo !== undefined) return guardarObjetivo(t.dataset.objetivo);
+  if (t.dataset.diaComida) return marcarDia(t.dataset.diaComida, t.dataset.estado);
   if (t.dataset.cam) return pasoCaminadora(t.dataset.cam, +t.dataset.v);
   if (t.dataset.pasoMedida) {
     guardarBorrador();
