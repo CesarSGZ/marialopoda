@@ -792,3 +792,5 @@ button.notita { background: linear-gradient(135deg, #FFF4F8, #FFE0EC); }
 .logros-salud b { display: block; font-size: 18px; margin-top: 2px; }
 .logros-salud small { display: block; font-size: 11px; color: var(--tinta-2); margin-top: 2px; }
 .idea-salud { margin: 0 0 12px; padding: 10px 12px; border-radius: 14px; background: var(--berenjena); font-size: 14.5px; line-height: 1.4; }
+.r-fuente { margin: 0 0 6px; font-size: 12px; line-height: 1.35; color: var(--tinta-2); }
+.gp-punto.rara { fill: none; stroke: var(--tinta-2); stroke-width: 1.2; opacity: .8; }
