@@ -53,6 +53,7 @@ const estado = {
   pique: leer('pique', null),
   carlitos: leer('carlitos', null),
   salud: leer('salud', null),
+  rangoPeso: leer('rangoPeso', '6m'),
   serieElegida: {},
   verMas: false,
   editando: null,
@@ -1006,6 +1007,30 @@ function pintarHace(lista) {
   return `<button type="button" class="hace" data-accion="hace"${lista.length > 1 ? ' aria-label="Ver otra mejora"' : ''}>${h.texto}<span class="gorda">${h.grande}</span>${lista.length > 1 ? `<small>Toca para ver otra</small>` : ''}</button>`;
 }
 
+// Pestaña Salud: comida, peso y pasos.
+function pintarSaludVista() {
+  $('#pantalla').innerHTML = pintarSalud();
+}
+// Pestaña Constancia: cuándo entrena, lo que espera, el pique, la caminadora y sus notas.
+function pintarConstancia() {
+  const m = $('#pantalla');
+  const orden = resumenes().orden;
+  m.innerHTML = `
+    <div class="portada"><h1 class="gorda">Tu constancia</h1></div>
+    ${pintarSinEntrenar(orden)}
+    <h2 class="gorda seccion">Tus últimas 26 semanas</h2>
+    <div class="semanas" id="semanas"></div>
+    <p class="pie">Cuanto más claro, más días entrenaste esa semana.</p>
+    ${pintarPiqueTabla()}
+    <h2 class="gorda seccion">Mini entreno y caminadora</h2>
+    <div id="evolucion"></div>
+    <h2 class="gorda seccion">Tus notas</h2>
+    <div id="notas"></div>`;
+  pintarSemanas();
+  pintarEvolucionCircuito();
+  pintarNotas();
+}
+
 function pintarProgreso() {
   const florecidas = estado.filas.filter((f) => f[F.ORIGEN] === 'app').length;
   const m = $('#pantalla');
@@ -1032,10 +1057,7 @@ function pintarProgreso() {
     <p class="datos-vida"><b>${semanas} semanas</b> entrenando, <b>${miles(deFuerza.length)} series</b> apuntadas y más de <b>${miles(toneladas)} toneladas</b> movidas.${florecidas ? ` Y <b>${miles(florecidas)} ${florecidas === 1 ? 'flor plantada' : 'flores plantadas'}</b> en tu jardín 🌻` : ''}</p>
     ${pintarCifras()}
     ${pintarHace(hace)}
-    ${pintarSinEntrenar(orden)}
     ${pintarUltimoAno()}
-    ${pintarPiqueTabla()}
-    ${pintarSalud()}
     <h2 class="gorda seccion">Por músculo</h2>
     <div class="chips" role="group" aria-label="Elegir músculo">
       ${orden.map((o) => `<button type="button" data-musculo="${esc(o)}" aria-pressed="${o === estado.musculo}">${esc(o)}</button>`).join('')}
@@ -1044,23 +1066,13 @@ function pintarProgreso() {
       ${conLineas ? `<button type="button" data-grafica="*" aria-pressed="${estado.grafica === '*'}">Frente a otras</button>` : ''}${delMusculo.map((e) => `<button type="button" data-grafica="${esc(e.ej)}" aria-pressed="${e.ej === estado.grafica}">${esc(e.ej)}</button>`).join('')}
     </div>
     <div class="grafica-caja" id="caja"></div>
-    <h2 class="gorda seccion">Mini entreno y caminadora</h2>
-    <div id="evolucion"></div>
     <h2 class="gorda seccion">Tu fuerza, músculo a músculo</h2>
     ${pintarCuerpo(PESO_REFERENCIA)}
-    <h2 class="gorda seccion">Tus últimas 26 semanas</h2>
-    <div class="semanas" id="semanas"></div>
-    <p class="pie">Cuanto más claro, más días entrenaste esa semana. Lo anterior a noviembre de 2026 tiene fechas aproximadas: el Excel solo decía "Semana N".</p>
     <h2 class="gorda seccion">Lo que más has subido</h2>
-    <ul class="subidas" id="subidas"></ul>
-    <h2 class="gorda seccion">Tus notas</h2>
-    <div id="notas"></div>`;
+    <ul class="subidas" id="subidas"></ul>`;
   if (estado.grafica === '*') pintarGraficaMusculos(estado.musculo); else pintarGrafica(lista.find((e) => e.ej === estado.grafica));
   dibujarMaria();
-  pintarEvolucionCircuito();
-  pintarSemanas();
   pintarSubidas(lista, conRecord);
-  pintarNotas();
 }
 
 function pintarSubidas(lista) {
@@ -1309,6 +1321,8 @@ function pintar() {
   if (estado.vista === 'hoy') pintarHoy();
   else if (estado.vista === 'mundo') pintarMundo(objetivoSemanal());
   else if (estado.vista === 'carlitos' && CARLITOS_VISIBLE) pintarCarlitos();
+  else if (estado.vista === 'constancia') pintarConstancia();
+  else if (estado.vista === 'salud') pintarSaludVista();
   else pintarProgreso();
   pintarDescanso();
   pintarPendiente();
@@ -1361,7 +1375,9 @@ document.addEventListener('click', (ev) => {
   if (t.dataset.dia) { guardarBorrador(); estado.dia = +t.dataset.dia; estado.ejercicio = null; return pintar(); }
   if (t.dataset.ej) { guardarBorrador(); estado.ejercicio = t.dataset.ej; $('#pantalla').scrollTo({ top: 0, behavior: 'smooth' }); return pintar(); }
   if (t.dataset.musculo) {
-    estado.musculo = t.dataset.musculo; estado.grafica = null; pintar();
+    estado.musculo = t.dataset.musculo; estado.grafica = null;
+    if (t.dataset.irGrafica && estado.vista !== 'progreso') { estado.vista = 'progreso'; $('#pantalla').scrollTo(0, 0); }
+    pintar();
     if (t.dataset.irGrafica) $('#caja')?.scrollIntoView({ behavior: SIN_MOVIMIENTO() ? 'auto' : 'smooth', block: 'center' });
     return undefined;
   }
@@ -1379,6 +1395,7 @@ document.addEventListener('click', (ev) => {
   if (t.dataset.caminata) return abrirCaminadora(t.dataset.caminata);
   if (t.dataset.test) return empezarTest(t.dataset.test);
   if (t.dataset.objetivo !== undefined) return guardarObjetivo(t.dataset.objetivo);
+  if (t.dataset.rangoPeso) return cambiarRangoPeso(t.dataset.rangoPeso);
   if (t.dataset.diaComida) return marcarDia(t.dataset.diaComida, t.dataset.estado);
   if (t.dataset.cam) return pasoCaminadora(t.dataset.cam, +t.dataset.v);
   if (t.dataset.pasoMedida) {

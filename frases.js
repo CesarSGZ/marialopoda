@@ -197,7 +197,7 @@ const FRASES = {
     '🥊 Te estás ganando a ti misma. Qué nivel.'
   ],
   novedades: [
-    'Tu día de descanso ya tiene mini entreno opcional, y cada día puedes apuntar tu caminadora. En Progreso verás cómo evoluciona todo.'
+    'Tu día de descanso ya tiene mini entreno opcional, y cada día puedes apuntar tu caminadora. En Constancia verás cómo evoluciona todo.'
   ],
   cumple: [
     'Hoy las barras te cantan, los girasoles se giran hacia ti y los elefantes tocan la trompeta.',

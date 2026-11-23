@@ -20,7 +20,7 @@ async function traerSalud() {
     if (!d.ok) return;
     estado.salud = d.salud; guardar('salud', d.salud);
     const activo = document.activeElement;
-    if (estado.vista === 'progreso' && $('#capa').hidden && (!activo || !activo.matches('input, textarea'))) pintar();
+    if (estado.vista === 'salud' && $('#capa').hidden && (!activo || !activo.matches('input, textarea'))) pintar();
   } catch (e) { /* sin red: lo guardado */ }
 }
 async function mandarSalud(cuerpo) {
@@ -58,20 +58,26 @@ function tendenciaPeso(dias, hoy) {
   const fechas = Object.keys(dias).filter((d) => dias[d].peso && d <= hoy).sort();
   if (!fechas.length) return [];
   const out = [];
-  let t = dias[fechas[0]].peso;
+  let t = dias[fechas[0]].peso, ultima = fechas[0];
   for (let d = fechas[0]; d <= hoy; d = desplazar(d, 1)) {
-    if (dias[d] && dias[d].peso) t += 0.1 * (dias[d].peso - t);
+    if (dias[d] && dias[d].peso) {
+      t = (Date.parse(d) - Date.parse(ultima)) / 864e5 > 30 ? dias[d].peso : t + 0.1 * (dias[d].peso - t);
+      ultima = d;
+    }
     out.push([d, t]);
   }
   return out;
 }
-// Pendiente en kg por día de la tendencia (mínimos cuadrados).
-function pendienteKg(puntos) {
-  if (puntos.length < 2) return 0;
-  const n = puntos.length, mx = (n - 1) / 2, my = puntos.reduce((s, p) => s + p[1], 0) / n;
+// Pendiente en kg por día de unas pesadas sueltas, con su fecha real.
+function pendienteFechas(puntos) {
+  const xs = puntos.map(([d]) => Date.parse(d) / 864e5), mx = mediaSalud(xs), my = mediaSalud(puntos.map((p) => p[1]));
   let a = 0, b = 0;
-  puntos.forEach((p, i) => { a += (i - mx) * (p[1] - my); b += (i - mx) ** 2; });
-  return a / b;
+  puntos.forEach((p, i) => { a += (xs[i] - mx) * (p[1] - my); b += (xs[i] - mx) ** 2; });
+  return b ? a / b : 0;
+}
+function rectaHoy(puntos, pendiente, hoy) {
+  const xs = puntos.map(([d]) => Date.parse(d) / 864e5);
+  return mediaSalud(puntos.map((p) => p[1])) + pendiente * (Date.parse(hoy) / 864e5 - mediaSalud(xs));
 }
 // Qué días de comida cuentan. Un día sin nada no existe; uno marcado por ella manda; y uno muy por debajo de lo normal
 // (menos del 65 % de la mediana) parece incompleto: una cena fuera sin apuntar, unas vacaciones…
@@ -116,11 +122,15 @@ function analizarSalud(salud, filas, hoy) {
   const ayer = desplazar(hoy, -1);
   const v28 = rango(ayer, 28), v14 = rango(ayer, 14), v7 = rango(ayer, 7), previas = rango(ayer, 28, 7);
   // Peso: el de hoy sí vale.
-  const tend = tendenciaPeso(dias, hoy), peso = tend.length ? tend[tend.length - 1][1] : null;
+  const tend = tendenciaPeso(dias, hoy);
   const pesadas = rango(hoy, 28).filter((d) => dias[d] && dias[d].peso);
   const hayTendencia = pesadas.length >= 4 && (Date.parse(pesadas[pesadas.length - 1]) - Date.parse(pesadas[0])) / 864e5 >= 10;
-  const kgDia = hayTendencia ? pendienteKg(tend.filter(([d]) => d >= pesadas[0])) : null;
+  // El ritmo sale de sus pesadas reales del último mes (recta de mínimos cuadrados por fecha): la tendencia suavizada
+  // va con retraso cuando se pesa a ratos, y daría un ritmo más lento del real.
+  const kgDia = hayTendencia ? pendienteFechas(pesadas.map((d) => [d, dias[d].peso])) : null;
   const semana = kgDia === null ? null : kgDia * 7;
+  // Su peso de hoy: el de esa recta (sin el ruido de un día); sin pesadas suficientes, la tendencia suavizada.
+  const peso = hayTendencia ? rectaHoy(pesadas.map((d) => [d, dias[d].peso]), kgDia, hoy) : tend.length ? tend[tend.length - 1][1] : null;
   // Comida
   const comida28 = diasComida(dias, marcas, v28), cuentan28 = comida28.filter((d) => d.estado === 'cuenta');
   const cuentan14 = cuentan28.filter((d) => d.fecha >= v14[0]);
@@ -172,6 +182,22 @@ function analizarSalud(salud, filas, hoy) {
   const huecosFinde = !hayComida ? 0 : desdeComida.filter((d) => esFinde(d) && !apuntado(d)).length / Math.max(1, desdeComida.filter(esFinde).length);
   const huecosSemana = !hayComida ? 0 : desdeComida.filter((d) => !esFinde(d) && !apuntado(d)).length / Math.max(1, desdeComida.filter((d) => !esFinde(d)).length);
   const ultimaPesada = pesadas.length ? pesadas[pesadas.length - 1] : null;
+  // Para lo visual: semanas de comida, rachas y de dónde viene su peso.
+  const comida56 = diasComida(dias, marcas, rango(ayer, 56));
+  const semanas = Array.from({ length: 8 }, (_, i) => {
+    const desde = desplazar(ayer, -(8 - i) * 7 + 1), hasta = desplazar(desde, 6);
+    const l = comida56.filter((d) => d.estado === 'cuenta' && d.fecha >= desde && d.fecha <= hasta);
+    return { desde, media: l.length >= 3 ? mediaSalud(l.map((d) => d.kcal)) : null };
+  });
+  let racha = 0;
+  for (let d = dias[hoy] && dias[hoy].kcal > 0 ? hoy : ayer; dias[d] && dias[d].kcal > 0; d = desplazar(d, -1)) racha++;
+  const protDias = peso ? v7.filter((d) => dias[d] && dias[d].prot >= 1.6 * peso).length : 0;
+  const pasos10k = v7.filter((d) => dias[d] && dias[d].pasos >= 10000).length;
+  // El punto de partida de su objetivo: lo más lejos de la meta en los últimos seis meses (por la tendencia).
+  const seisMeses = tend.filter(([d]) => d >= desplazar(hoy, -182) && Object.keys(dias).some((x) => x <= d && x >= desplazar(d, -14) && dias[x].peso));
+  const inicio = objetivo && objetivo.peso && seisMeses.length && objetivo.tipo !== 'mantener'
+    ? seisMeses.reduce((m, p) => ((objetivo.tipo === 'volumen' ? p[1] < m[1] : p[1] > m[1]) ? p : m)) : null;
+  const kgConMeta = objetivo && objetivo.kcal && mantenimiento && hayComida ? (objetivo.kcal - mantenimiento) * 7 / KCAL_KG : null;
   const pico = ultimaPesada && ultimaPesada >= desplazar(hoy, -2) && peso ? dias[ultimaPesada].peso - peso : null;
   return {
     suelo, enSuelo: sinSuelo !== null && sinSuelo < suelo, kcalFinde, kcalSemana, huecosFinde, huecosSemana, pico, discrepancia: datos !== null && formula !== null ? datos - formula : null,
@@ -179,90 +205,18 @@ function analizarSalud(salud, filas, hoy) {
     prot: macro('prot'), carb: macro('carb'), grasa: macro('grasa'), pasos30: rango(hoy, 30).map((d) => [d, (dias[d] && dias[d].pasos) || 0]),
     pasos7, pasosAntes, act7, actAntes, entrenosSemana, formula, datos, mantenimiento, confianza, balance, ritmo, comerPara,
     llegaSiSigue: semana !== null && Math.abs(semana) >= 0.03 ? llegar(semana) : null, llegaConRitmo: llegar(ritmo),
-    fuerza: cambiosFuerza(filas, hoy), ultimo: Object.keys(dias).sort().pop()
+    fuerza: cambiosFuerza(filas, hoy), ultimo: Object.keys(dias).sort().pop(),
+    hoy, semanas, racha, protDias, pasos10k, inicio, kgConMeta, pesadasTodas: Object.keys(dias).filter((d) => dias[d].peso && d <= hoy).sort().map((d) => [d, dias[d].peso])
   };
 }
 
-// ---------- Lo que se le cuenta ----------
-const kgSemana = (v) => `${v > 0 ? '+' : v < 0 ? '−' : ''}${num(Math.abs(Math.round(v * 100) / 100))} kg por semana`;
+
+// ---------- Lo que se le cuenta: poco texto, todo lo demás en gráficas ----------
+const kgSemana = (v) => `${v > 0 ? '+' : v < 0 ? '−' : ''}${num(Math.abs(Math.round(v * 100) / 100))} kg/sem`;
 const kcalTexto = (v) => `${miles(redondea(v, 10))} kcal`;
-const listaY = (l) => (l.length > 1 ? `${l.slice(0, -1).join(', ')} y ${l[l.length - 1]}` : l[0] || '');
+const kgTexto = (v) => `${num(Math.round(v * 10) / 10)} kg`;
 
-function analisisTexto(a) {
-  const out = [], o = a.objetivo;
-  // 1. Dónde está: mantenimiento y balance.
-  if (a.mantenimiento && a.comeMedia) {
-    const b = a.balance, dif = Math.abs(redondea(b, 10));
-    out.push(`Comes de media unas ${kcalTexto(a.comeMedia)} al día y tu mantenimiento ronda las ${kcalTexto(a.mantenimiento)}: ${Math.abs(b) < 75 ? 'estás prácticamente en mantenimiento' : b > 0 ? `estás unas ${dif} kcal por encima (superávit)` : `estás unas ${dif} kcal por debajo (déficit)`}.${a.semana !== null ? ` Tu peso va a ${kgSemana(a.semana)}.` : ''}`);
-  } else if (!a.hayComida) out.push(`${a.llegaComida ? 'Ya llega tu comida de MyFitnessPal.' : 'Aún no ha llegado tu comida de MyFitnessPal.'} Cuando tengas una semana apuntada entera, te digo cuánto comes de media y si estás en superávit.${a.formula ? ` Por ahora, por fórmula, tu mantenimiento ronda las ${kcalTexto(a.formula)}.` : ''}`);
-  // 2. Hacia dónde va, frente a su objetivo.
-  if (o && a.semana !== null && a.ritmo !== null && !a.hayComida) {
-    const e = estadoObjetivo(a), quiere = `${o.tipo === 'volumen' ? 'tu volumen' : o.tipo === 'definicion' ? 'tu definición' : 'mantenerte'}`;
-    out.push(e === 'bien' ? `Tu peso va a ${kgSemana(a.semana)}: justo el ritmo para ${quiere}. 🌻` : e === 'rapido' ? `Tu peso va a ${kgSemana(a.semana)}, algo más rápido de lo que buscas para ${quiere} (${kgSemana(a.ritmo)}).` : `Tu peso va a ${kgSemana(a.semana)}; para ${quiere} buscas ${kgSemana(a.ritmo)}.`);
-  } else if (o && a.semana !== null && a.ritmo !== null) {
-    const r = a.ritmo, va = a.semana;
-    if (o.tipo === 'volumen') {
-      if (va < r * 0.5) out.push(`Para tu volumen (${kgSemana(r)}) te falta comida: ${va <= -0.05 ? 'tu peso baja' : 'tu peso casi no se mueve'}. Sube a unas ${kcalTexto(a.comerPara)} al día.`);
-      else if (va > r * 1.6 && va - r > 0.1) out.push(`Vas a ${kgSemana(va)}, más rápido de lo que el músculo puede aprovechar: parte se iría a grasa. Bajar a unas ${kcalTexto(a.comerPara)} te deja en ${kgSemana(r)}.`);
-      else out.push(`Superávit limpio: vas a ${kgSemana(va)}, justo el ritmo que buscas. Sigue así. 🌻`);
-    } else if (o.tipo === 'definicion') {
-      if (va > r * 0.5) {
-        // Si lo apuntado y el peso no cuadran, comer menos no es la respuesta: primero, apuntar bien.
-        if (a.discrepancia !== null && a.discrepancia < -300) out.push(`Para tu definición (${kgSemana(r)}) tu peso ${va >= 0.05 ? 'sube' : 'casi no baja'}, aunque por lo que apuntas deberías estar bajando. Antes de comer menos, revisa cómo apuntas (mira las ideas de abajo): tu cuerpo se comporta como si comieras unas ${miles(redondea(-a.discrepancia, 50))} kcal más de lo apuntado.`);
-        else out.push(`Para tu definición (${kgSemana(r)}) tu peso ${va >= 0.05 ? 'sube' : 'casi no baja'}. Baja a unas ${kcalTexto(a.comerPara)} al día.`);
-      }
-      else if (va < r * 1.6 && r - va > 0.15) out.push(`Bajas ${kgSemana(va)}: demasiado rápido, y así se pierde músculo y fuerza. Sube a unas ${kcalTexto(a.comerPara)}.`);
-      else out.push(`Buen ritmo de definición: ${kgSemana(va)}. Sigue así. 🌻`);
-    } else out.push(Math.abs(va) < 0.1 ? `Te mantienes estable, que es lo que buscas.` : `Para mantenerte, tu peso ${va > 0 ? 'sube' : 'baja'} algo (${kgSemana(va)}): unas ${kcalTexto(a.comerPara)} al día te dejarían estable.`);
-  }
-  if (a.hayComida && a.enSuelo) out.push(`Mejor no bajes de unas ${kcalTexto(a.suelo)} al día: por debajo de tu metabolismo basal se pierde músculo, energía y ganas de entrenar. Si quieres ir más rápido, suma pasos en vez de quitar comida.`);
-  if (o && o.peso && a.peso) {
-    if (a.llegaSiSigue) out.push(`Si sigues así, llegarías a ${num(o.peso)} kg hacia el ${fechaCorta(a.llegaSiSigue)}.`);
-    else if (a.semana !== null && Math.abs(o.peso - a.peso) >= 0.3) out.push(`A este ritmo no te acercas a ${num(o.peso)} kg.`);
-    if (a.hayComida && a.llegaConRitmo && a.comerPara && !a.enSuelo && estadoObjetivo(a) !== 'bien') out.push(`Comiendo unas ${kcalTexto(a.comerPara)}, llegarías hacia el ${fechaCorta(a.llegaConRitmo)}.`);
-  }
-  // 3. Por qué esta semana es distinta: pasos, caminadora, entrenos y comida.
-  const causas = [];
-  if (a.pasos7 && a.pasosAntes && Math.abs(a.pasos7 - a.pasosAntes) >= 1500 && a.peso) {
-    const kcal = Math.abs(a.pasos7 - a.pasosAntes) * KCAL_PASO_KG * a.peso;
-    causas.push(`${a.pasos7 > a.pasosAntes ? 'has caminado más' : 'has caminado menos'} (${miles(a.pasos7)} pasos al día frente a ${miles(a.pasosAntes)}: unas ${miles(redondea(kcal, 10))} kcal ${a.pasos7 > a.pasosAntes ? 'más' : 'menos'} de gasto al día)`);
-  }
-  const kmAntes = a.actAntes.km / 4;
-  if (Math.abs(a.act7.km - kmAntes) >= 3) causas.push(`${a.act7.km > kmAntes ? 'más' : 'menos'} caminadora (${num(Math.round(a.act7.km * 10) / 10)} km frente a unos ${num(Math.round(kmAntes * 10) / 10)} por semana)`);
-  const entAntes = a.actAntes.entrenos / 4;
-  if (Math.abs(a.act7.entrenos - entAntes) >= 1) causas.push(`${a.act7.entrenos > entAntes ? 'has entrenado más' : 'has entrenado menos'} (${a.act7.entrenos} ${a.act7.entrenos === 1 ? 'entreno' : 'entrenos'} frente a unos ${num(Math.round(entAntes * 10) / 10)} por semana)`);
-  if (causas.length) out.push(`Esta semana, frente a las anteriores: ${listaY(causas)}.`);
-  // 4. Su fuerza con este balance.
-  const f = a.fuerza, suben = f.suben.slice(0, 3).map((x) => `${x.ej.toLowerCase()} (+${num(Math.round(x.cambio * 100))} %)`), bajan = f.bajan.slice(0, 2).map((x) => `${x.ej.toLowerCase()} (−${num(Math.abs(Math.round(x.cambio * 100)))} %)`);
-  const deficit = a.semana !== null ? a.semana < -0.05 : a.balance !== null && a.balance < -150;
-  const superavit = a.semana !== null ? a.semana > 0.05 : a.balance !== null && a.balance > 150;
-  const rapido = o && o.tipo === 'volumen' && a.semana !== null && a.ritmo && a.semana > a.ritmo * 1.6 && a.semana - a.ritmo > 0.1;
-  if (f.comparados) {
-    if (deficit) {
-      if (suben.length) out.push(`¡Qué bien! Estás en déficit y aun así has subido en ${listaY(suben)}. Eso es ganar fuerza mientras bajas, lo más difícil. 💪`);
-      if (bajan.length) out.push(`Has bajado un poco en ${listaY(bajan)}. En déficit es normal, no te preocupes: con la proteína alta y entrenando pesado, vuelve en cuanto comas un poco más.`);
-      if (!suben.length && !bajan.length) out.push('En déficit y manteniendo todas tus marcas: perfecto, no estás perdiendo músculo.');
-    } else if (superavit) {
-      if (suben.length) out.push(`${rapido ? 'Ese superávit se nota en la barra' : 'Superávit limpio y se nota'}: has subido en ${listaY(suben)}. 🚀`);
-      if (bajan.length) out.push(`Con superávit deberías subir, pero has bajado en ${listaY(bajan)}. Puede ser cansancio o poco descanso: mira cómo duermes.`);
-      if (!suben.length && !bajan.length) out.push('Estás en superávit pero tus marcas no se mueven: aprovecha esa energía para subir peso o repes.');
-    } else if (suben.length) out.push(`Tu peso está estable y has subido en ${listaY(suben)}: recomposición, más fuerte con el mismo peso. 🌻`);
-    else if (bajan.length) out.push(`Has bajado algo en ${listaY(bajan)}. Con el peso estable suele ser cansancio: unos días suaves y vuelve.`);
-  }
-  // 5. Proteína y lo que falta para afinar.
-  if (a.prot && a.peso) {
-    const min = 1.6 * a.peso;
-    out.push(a.prot < min ? `Proteína: unos ${miles(a.prot)} g al día. Para ganar o mantener músculo se recomiendan 1,6–2,2 g por kilo: ${miles(redondea(min, 5))}–${miles(redondea(2.2 * a.peso, 5))} g para ti.` : `Proteína: unos ${miles(a.prot)} g al día, dentro de lo recomendado (1,6–2,2 g por kilo). 💪`);
-  }
-  if (a.hayComida && a.fuera.length) out.push(`No cuentan ${a.fuera.length === 1 ? 'un día' : `${a.fuera.length} días`} con la comida incompleta: la media sale del resto. Puedes cambiarlo abajo.`);
-  if (a.hayComida && a.sinApuntar >= 4) out.push(`Hay ${a.sinApuntar} días de las dos últimas semanas sin nada en MyFitnessPal. No pasa nada: se calcula con los demás, pero cuantos más días, más fino.`);
-  if (a.semana === null) out.push('Para ver hacia dónde va tu peso hacen falta pesadas en al menos diez días distintos: con pesarte unas mañanas por semana basta.');
-  if (!a.perfil.edad || !a.perfil.altura) out.push('Pon tu edad y tu altura abajo para calcular tu mantenimiento.');
-  else if (!o) out.push('Elige abajo tu objetivo y te digo cuánto comer y cuándo llegarías.');
-  return out.slice(0, 4);
-}
-
-// En qué punto está, en una frase: lo primero que lee.
+// En qué punto está frente a su objetivo.
 function estadoObjetivo(a) {
   const o = a.objetivo;
   if (!o || a.semana === null || a.ritmo === null) return null;
@@ -273,35 +227,41 @@ function estadoObjetivo(a) {
 }
 function titularSalud(a) {
   const e = estadoObjetivo(a), o = a.objetivo, sube = a.fuerza.suben[0];
-  const fuerza = sube ? ` Y encima estás más fuerte en ${sube.ej.toLowerCase()}.` : '';
-  if (a.semana === null || !a.comeMedia) return { t: 'Ya casi, Lópoda 🌱', s: 'Unos días más de datos y te lo cuento todo con detalle.' };
-  if (!o) return { t: 'Esto es lo que dicen tus datos 📊', s: `Elige tu objetivo abajo y te digo cómo llegar.${fuerza}` };
-  if (e === 'bien') return { t: o.tipo === 'mantener' ? 'Estable y fuerte: perfecto 🌻' : '¡Vas genial, Lópoda! 🌻', s: `Lo que comes, tu peso y tu objetivo van en la misma dirección.${fuerza}` };
-  if (o.tipo === 'volumen') return e === 'falta' ? { t: 'Te falta un poquito de gasolina ⛽', s: `Para crecer, tu cuerpo necesita algo más de comida.${fuerza}` } : { t: 'Frena un poquito, que vas lanzada 🐢', s: `Más despacio, casi todo lo que subas será músculo.${fuerza}` };
-  if (o.tipo === 'definicion') return e === 'falta' ? { t: 'Estás muy cerca: ajustamos un poco 🎯', s: `Un pequeño cambio y empieza a bajar.${fuerza}` } : { t: 'Vas demasiado rápido: cuídate 💛', s: `Más despacio no pierdes fuerza ni músculo.${fuerza}` };
+  const fuerza = sube ? ` Y estás más fuerte en ${sube.ej.toLowerCase()}. 💪` : '';
+  if (a.semana === null) return { t: 'Ya casi, Lópoda 🌱', s: 'Pésate unas mañanas por semana y te enseño hacia dónde vas.' };
+  if (!o) return { t: 'Esto dicen tus datos 📊', s: `Elige tu objetivo abajo y te enseño cómo llegar.${fuerza}` };
+  if (e === 'bien') return { t: o.tipo === 'mantener' ? 'Estable y fuerte 🌻' : '¡Vas genial, Lópoda! 🌻', s: `Justo al ritmo que buscas.${fuerza}` };
+  if (o.tipo === 'volumen') return e === 'falta' ? { t: 'Te falta gasolina ⛽', s: `Para crecer, un poco más de comida.${fuerza}` } : { t: 'Frena un poquito 🐢', s: `Más despacio, casi todo será músculo.${fuerza}` };
+  if (o.tipo === 'definicion') return e === 'falta' ? { t: 'Casi: ajustamos un poco 🎯', s: `Un pequeño cambio y empieza a bajar.${fuerza}` } : { t: 'Demasiado rápido: cuídate 💛', s: `Más despacio no pierdes fuerza.${fuerza}` };
   return { t: 'Casi estable 🌿', s: `Un pequeño ajuste y te quedas donde quieres.${fuerza}` };
 }
-// Lo que puede hacer esta semana: lo más útil primero, como mucho dos.
-function ideasSalud(a) {
-  const ideas = [], o = a.objetivo, e = estadoObjetivo(a), peso = a.peso || 60;
-  // Cuando lo apuntado y el peso no cuadran, lo más habitual es que se escapen calorías al apuntar.
-  const apuntaMenos = (a.discrepancia !== null && a.discrepancia < -300) || (o && o.tipo === 'definicion' && e === 'falta' && a.balance !== null && a.balance < -150);
-  if (apuntaMenos) ideas.push('🫒 Todo apunta a que comes algo más de lo que apuntas, y es lo más normal del mundo. Lo que más se escapa: el aceite (una cucharada son unas 100 kcal y casi nunca se pesa), las salsas y aliños, el picoteo mientras cocinas, las bebidas y las comidas fuera, que suelen llevar un 20–30 % más de lo que parece. Prueba una semana a pesar el aceite y apuntar también lo pequeñito.');
-  if (a.discrepancia !== null && a.discrepancia > 300) ideas.push(`🔥 Tu cuerpo gasta más de lo que dice la fórmula: unas ${miles(redondea(a.discrepancia, 50))} kcal más al día. ¡Metabolismo con ganas! ${o && o.tipo === 'volumen' ? 'Para subir vas a necesitar comer más de lo que parece.' : 'Puedes comer más de lo que creías.'}`);
-  if (a.kcalFinde && a.kcalSemana && a.kcalFinde < a.kcalSemana * 0.85) ideas.push(`🍽️ Los fines de semana apuntas menos que entre semana (${miles(redondea(a.kcalFinde, 10))} frente a ${miles(redondea(a.kcalSemana, 10))} kcal). Si son días de comer fuera, apúntalo aunque sea a ojo: una estimación vale mucho más que nada.`);
-  else if (a.huecosFinde > a.huecosSemana + 0.25) ideas.push('🍽️ Los fines de semana se quedan más días sin apuntar. Si comes fuera, busca el plato en MyFitnessPal y ponlo a ojo: así la media no se queda corta.');
-  if (a.pico !== null && a.pico >= 0.8) ideas.push(`💧 Tu última pesada está ${num(Math.round(a.pico * 10) / 10)} kg por encima de tu tendencia. Tranquila: eso es agua, no grasa. Pasa con la sal, los carbohidratos, la regla o un entreno fuerte de pierna. Fíjate en la línea, no en el número de un día.`);
-  if (o && o.tipo === 'volumen' && e === 'falta') ideas.push('⛽ Para comer más sin llenarte: un puñado de frutos secos (unas 180 kcal), un chorrito de aceite de oliva en la comida (unas 90), un batido de leche, plátano y avena (unas 400) o yogur con miel y granola de postre.');
-  if (o && o.tipo === 'definicion' && e === 'falta') ideas.push(`🚶‍♀️ Sin tocar la comida: 2.000 pasos más al día (unos 20 minutos andando) son unas ${miles(redondea(2000 * KCAL_PASO_KG * peso, 10))} kcal más de gasto. Y la proteína y la verdura llenan mucho con pocas calorías.`);
-  if (e === 'rapido' && o && o.tipo === 'volumen') ideas.push('🐢 Para frenar sin pasar hambre: quita algo de lo más calórico y menos saciante (bollería, salsas, bebidas con azúcar) y deja intactas la proteína y la verdura.');
-  if (a.prot && a.prot < 1.6 * peso) ideas.push('🥚 Para llegar a tu proteína, ideas fáciles: un yogur alto en proteína (15–20 g), 100 g de pollo o pavo (unos 25 g), 3 huevos (unos 18 g), una lata de atún (unos 25 g) o un batido de proteína (unos 25 g).');
-  if (a.pasos7 && a.pasos7 < 6000) ideas.push('🌳 Esta semana te has movido poco: un paseo de 20 minutos después de comer suma unos 2.000 pasos y sienta genial.');
-  if (a.act7.entrenos < a.actAntes.entrenos / 4 - 0.9) ideas.push('🏋️‍♀️ Esta semana has entrenado menos. ¡No pasa nada! Un entreno corto también cuenta, y tu cuerpo lo agradece.');
-  if (a.sinApuntar >= 4) ideas.push('📱 Truco: pon MyFitnessPal en tu pantalla de inicio y apunta justo al terminar de comer. Con más días apuntados, los consejos son más finos.');
-  if (!ideas.length && e === 'bien' && a.hayComida) ideas.push('🌻 Todo cuadra: lo que comes y tu peso van en la misma dirección. Sigue exactamente así, que lo estás haciendo de maravilla.');
-  return ideas.slice(0, 2);
+// Como mucho dos frases cortas: solo lo que pide hacer algo.
+function frasesSalud(a) {
+  const out = [], o = a.objetivo, e = estadoObjetivo(a), c = a.hayComida && a.comerPara ? kcalTexto(a.comerPara) : null;
+  if (o && e === 'falta') {
+    if (o.tipo === 'volumen') out.push(c ? `Para crecer, sube a unas ${c} al día.` : 'Tu peso casi no se mueve: come un poco más.');
+    else if (o.tipo === 'definicion') out.push(c ? `Para bajar, unas ${c} al día.` : 'Tu peso no baja: un poco menos de comida o más pasos.');
+    else if (c) out.push(`Para quedarte estable, unas ${c} al día.`);
+  } else if (o && e === 'rapido' && c) out.push(o.tipo === 'volumen' ? `Con unas ${c} subirías a ${kgSemana(a.ritmo)}, casi todo músculo.` : `Sube a unas ${c} para no perder músculo.`);
+  if (a.hayComida && a.enSuelo) out.push(`No bajes de ${kcalTexto(a.suelo)}: mejor más pasos que menos comida.`);
+  if (a.kgConMeta !== null && a.ritmo !== null && Math.abs(a.kgConMeta - a.ritmo) > 0.1) out.push(`Con tu meta de ${kcalTexto(o.kcal)} irías a ${kgSemana(a.kgConMeta)}; tu ritmo ideal es ${kgSemana(a.ritmo)}.`);
+  if (a.prot && a.peso && a.prot < 1.6 * a.peso) out.push(`Proteína: ${miles(a.prot)} g al día. Te faltan unos ${miles(redondea(1.6 * a.peso - a.prot, 5))} g.`);
+  if (!a.hayComida) out.push('Con una semana de comida apuntada entera, te enseño tu mantenimiento real.');
+  if (!a.perfil.edad || !a.perfil.altura) out.push('Pon tu edad y tu altura abajo.');
+  return out.slice(0, 2);
 }
-// Un mensaje de Cesarlópodo para cerrar, distinto cada día.
+// Una idea práctica, corta.
+function ideaSalud(a) {
+  const o = a.objetivo, e = estadoObjetivo(a), peso = a.peso || 60;
+  if (a.pico !== null && a.pico >= 0.8) return `💧 Tu última pesada está ${kgTexto(a.pico)} por encima de tu tendencia: es agua, no grasa. Mira la línea, no el número de un día.`;
+  if (o && o.tipo === 'volumen' && e === 'falta') return '⛽ Fácil de sumar: frutos secos (180 kcal), un chorrito de aceite (90) o un batido de leche, plátano y avena (400).';
+  if (o && o.tipo === 'definicion' && e === 'falta') return `🚶‍♀️ 2.000 pasos más al día son unas ${miles(redondea(2000 * KCAL_PASO_KG * peso, 10))} kcal más de gasto, sin tocar la comida.`;
+  if (e === 'rapido' && o && o.tipo === 'volumen') return '🐢 Para frenar: menos bollería, salsas y bebidas con azúcar; la proteína y la verdura, igual.';
+  if (a.prot && a.prot < 1.6 * peso) return '🥚 Proteína fácil: yogur proteico (20 g), 100 g de pollo (25 g), 3 huevos (18 g) o una lata de atún (25 g).';
+  if (a.kcalFinde && a.kcalSemana && a.kcalFinde < a.kcalSemana * 0.85) return '🍽️ Los findes apuntas menos. Si comes fuera, ponlo a ojo: vale más que nada.';
+  if (a.discrepancia !== null && a.discrepancia < -300) return '🫒 Lo que más se escapa al apuntar: el aceite (100 kcal la cucharada), salsas, picoteo y comidas fuera.';
+  return null;
+}
 const MOTIVA_SALUD = [
   'Cada día que apuntas y entrenas te acerca a tu objetivo, y a Alemania. Estoy muy orgulloso de ti.',
   'No hace falta que sea perfecto: con que sea constante, ya estás ganando.',
@@ -312,65 +272,206 @@ const MOTIVA_SALUD = [
   'Un poquito cada día y, cuando te des cuenta, ya estás ahí.'
 ];
 
-// ---------- Pantalla ----------
-function barritas(lista, color) {
-  const max = Math.max(1, ...lista.map((p) => p[1]));
-  return `<div class="barritas" aria-hidden="true">${lista.map(([d, v]) => `<i title="${fechaCorta(d)}: ${miles(v)}" style="height:${Math.max(3, Math.round(v / max * 100))}%;background:${color}"></i>`).join('')}</div>`;
+// ---------- Gráficas ----------
+const MES_CORTO = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+const fechaMes = (d) => `${+d.slice(8)} ${MES_CORTO[+d.slice(5, 7) - 1]}`;
+const diasEntre = (a, b) => Math.round((Date.parse(b) - Date.parse(a)) / 864e5);
+const RANGOS_PESO = { '3m': ['3 meses', 91], '6m': ['6 meses', 182], '1a': ['1 año', 365], todo: ['Todo', 0] };
+
+// Hacia dónde va su objetivo: de dónde salió, dónde está y cuánto falta.
+function barraObjetivo(a) {
+  const o = a.objetivo;
+  if (!o || !o.peso || !a.peso || !a.inicio || o.tipo === 'mantener') return '';
+  const [dIni, pIni] = a.inicio, total = o.peso - pIni, hecho = a.peso - pIni;
+  if (Math.abs(total) < 0.3) return '';
+  const pct = Math.max(0, Math.min(100, hecho / total * 100)), falta = o.peso - a.peso;
+  const llegada = Math.abs(falta) < 0.3 ? '¡Ya estás en tu meta! 🎉' : a.llegaSiSigue ? `llegas hacia el ${fechaMes(a.llegaSiSigue)} ${a.llegaSiSigue.slice(2, 4)} 🎯` : 'a este ritmo aún no te acercas';
+  return `<div class="meta-peso">
+    <div class="meta-cab"><span>${kgTexto(pIni)}<small>${fechaMes(dIni)}</small></span><span class="dcha">${kgTexto(o.peso)}<small>tu meta</small></span></div>
+    <div class="meta-pista"><i style="width:${pct.toFixed(1)}%"></i><em style="left:${pct.toFixed(1)}%">${kgTexto(a.peso)}</em></div>
+    <p><b>${Math.round(pct)} %</b> del camino · ${Math.abs(falta) >= 0.3 ? `faltan ${kgTexto(Math.abs(falta))} · ` : ''}${llegada}</p></div>`;
 }
-function lineaPeso(tend, meta) {
-  const p = tend.slice(-60);
-  if (p.length < 2) return '';
-  const valores = p.map((x) => x[1]).concat(meta ? [meta] : []), min = Math.min(...valores) - 0.3, max = Math.max(...valores) + 0.3, y = (v) => (60 - (v - min) / (max - min) * 56 - 2).toFixed(1);
-  const pts = p.map(([, v], i) => `${(i / (p.length - 1) * 300).toFixed(1)},${y(v)}`).join(' ');
-  return `<svg class="linea-peso" viewBox="0 0 300 60" preserveAspectRatio="none" aria-hidden="true">${meta ? `<line x1="0" x2="300" y1="${y(meta)}" y2="${y(meta)}" stroke="var(--amarillo)" stroke-dasharray="4 4" vector-effect="non-scaling-stroke"/>` : ''}<polyline points="${pts}" fill="none" stroke="var(--chicle)" stroke-width="2.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>`;
+
+// Peso: pesadas (puntos), tendencia (línea), previsión (discontinua) y meta (amarilla), con ejes y unidades.
+function graficaPeso(a, rangoSel) {
+  const o = a.objetivo, hoy = a.hoy, todas = a.pesadasTodas;
+  if (!todas.length) return '';
+  const nDias = (RANGOS_PESO[rangoSel] || RANGOS_PESO['6m'])[1];
+  const desde = nDias ? desplazar(hoy, -nDias) : todas[0][0];
+  const pts = todas.filter(([d]) => d >= desde);
+  // La línea es la media de las pesadas de alrededor (±7 días, pesan más las cercanas). Solo se dibuja entre su
+  // primera y su última pesada de cada racha: en los huecos sin pesarse no se inventa nada.
+  const pesoDe = new Map(todas), tramos = [];
+  let tramo = [];
+  const inicioLinea = todas.find(([d]) => d >= desplazar(desde, -7));
+  for (let d = inicioLinea ? inicioLinea[0] : hoy; d <= hoy; d = desplazar(d, 1)) {
+    let sw = 0, sv = 0, antes = false, despues = false;
+    for (let k = -7; k <= 7; k++) {
+      const v = pesoDe.get(desplazar(d, k));
+      if (v === undefined) continue;
+      const w = 1 - Math.abs(k) / 8;
+      sw += w; sv += w * v;
+      if (k <= 0) antes = true; if (k >= 0) despues = true;
+    }
+    if (sw && antes && despues && d >= desde) tramo.push([d, sv / sw]); else if (tramo.length) { tramos.push(tramo); tramo = []; }
+  }
+  if (tramo.length) tramos.push(tramo);
+  // Previsión: al ritmo de ahora hasta la meta (si llega en menos de un año); si no, seis semanas.
+  let prevision = null;
+  if (a.semana !== null && a.peso) {
+    const fin = a.llegaSiSigue && diasEntre(hoy, a.llegaSiSigue) <= 365 ? a.llegaSiSigue : desplazar(hoy, 42);
+    prevision = [[hoy, a.peso], [fin, a.peso + a.semana / 7 * diasEntre(hoy, fin)]];
+  }
+  const finX = prevision ? prevision[1][0] : hoy;
+  const W = 340, H = 206, L = 34, R = 8, T = 22, B = 24;
+  const t0 = Date.parse(desde), t1 = Date.parse(finX) + 864e5 * 3;
+  const vals = pts.map((q) => q[1]).concat(tramos.flat().map((q) => q[1]), prevision ? prevision.map((q) => q[1]) : [], o && o.peso ? [o.peso] : []);
+  let min = Math.min(...vals), max = Math.max(...vals);
+  if (max - min < 1.5) { const m = (max + min) / 2; min = m - 0.75; max = m + 0.75; }
+  min -= 0.3; max += 0.3;
+  const x = (d) => (L + (Date.parse(d) - t0) / (t1 - t0) * (W - L - R)).toFixed(1);
+  const y = (v) => (T + (max - v) / (max - min) * (H - T - B)).toFixed(1);
+  const paso = [0.5, 1, 2, 5, 10].find((st) => (max - min) / st <= 5) || 10;
+  const yTicks = [];
+  for (let v = Math.ceil(min / paso) * paso; v <= max; v += paso) yTicks.push(v);
+  // Marcas del eje x: meses, cada dos meses o años según lo largo del tramo.
+  const span = (t1 - t0) / 864e5, cada = span <= 200 ? 1 : span <= 420 ? 2 : 12, xTicks = [];
+  const d0 = new Date(t0);
+  for (let d = new Date(Date.UTC(d0.getUTCFullYear(), d0.getUTCMonth() + 1, 1)); d.getTime() <= t1; d.setUTCMonth(d.getUTCMonth() + 1)) {
+    if (d.getUTCMonth() % cada !== 0) continue;
+    const iso = d.toISOString().slice(0, 10);
+    xTicks.push([iso, cada === 12 ? String(d.getUTCFullYear()) : MES_CORTO[d.getUTCMonth()] + (d.getUTCMonth() === 0 ? ` ${String(d.getUTCFullYear()).slice(2)}` : '')]);
+  }
+  const linea = (l) => l.map(([d, v]) => `${x(d)},${y(v)}`).join(' ');
+  const chips = Object.entries(RANGOS_PESO).map(([k, [t]]) => `<button type="button" data-rango-peso="${k}" aria-pressed="${k === rangoSel}">${t}</button>`).join('');
+  const meta = o && o.peso ? `<line class="gp-meta" x1="${L}" x2="${W - R}" y1="${y(o.peso)}" y2="${y(o.peso)}"/><text class="gp-meta-t" x="${L + 4}" y="${(+y(o.peso) - 5).toFixed(1)}">meta ${kgTexto(o.peso)}</text>` : '';
+  const llega = prevision && o && o.peso && a.llegaSiSigue === prevision[1][0];
+  const diana = llega ? `<circle class="gp-diana" cx="${x(prevision[1][0])}" cy="${y(o.peso)}" r="5"/><text class="gp-diana-t" x="${x(prevision[1][0])}" y="${(+y(o.peso) + (o.peso >= a.peso ? 17 : -9)).toFixed(1)}" text-anchor="end">${fechaMes(prevision[1][0])}</text>` : '';
+  return `<div class="grafica-peso" id="grafica-peso">
+    <div class="gp-cab"><b>${a.peso ? kgTexto(a.peso) : ''}</b>${a.semana !== null ? `<span class="${a.semana >= 0 ? 'sube' : 'baja'}">${a.semana >= 0 ? '▲' : '▼'} ${kgSemana(a.semana)}</span>` : ''}<small>tendencia de hoy</small></div>
+    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Tu peso">
+      ${yTicks.map((v) => `<line class="gp-rejilla" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/><text class="gp-eje" x="${L - 5}" y="${(+y(v) + 3.5).toFixed(1)}" text-anchor="end">${num(v)}</text>`).join('')}
+      ${xTicks.map(([d, t]) => `<text class="gp-eje" x="${x(d)}" y="${H - 6}" text-anchor="middle">${t}</text>`).join('')}
+      <text class="gp-eje" x="${L - 5}" y="${T - 10}" text-anchor="end">kg</text>
+      ${meta}
+      <line class="gp-hoy" x1="${x(hoy)}" x2="${x(hoy)}" y1="${T}" y2="${H - B}"/><text class="gp-eje" x="${x(hoy)}" y="${T - 10}" text-anchor="middle">hoy</text>
+      ${pts.map(([d, v]) => `<circle class="gp-punto" cx="${x(d)}" cy="${y(v)}" r="2.3"/>`).join('')}
+      ${tramos.map((l) => (l.length > 1 ? `<polyline class="gp-tendencia" points="${linea(l)}"/>` : '')).join('')}
+      ${prevision ? `<polyline class="gp-prevision" points="${linea(prevision)}"/>` : ''}
+      ${diana}
+    </svg>
+    <div class="gp-leyenda"><span><i class="l-punto"></i>pesadas</span><span><i class="l-tend"></i>tendencia</span>${prevision ? '<span><i class="l-prev"></i>si sigues así</span>' : ''}${o && o.peso ? '<span><i class="l-meta"></i>meta</span>' : ''}</div>
+    <div class="gp-rangos">${chips}</div></div>`;
 }
+// Para cambiar el tramo sin repintar toda la pantalla.
+function cambiarRangoPeso(r) {
+  estado.rangoPeso = r; guardar('rangoPeso', r);
+  const g = $('#grafica-peso');
+  if (g) g.outerHTML = graficaPeso(analizarSalud(estado.salud || { dias: {} }, estado.filas, hoyIso()), r);
+}
+
+// Lo que come frente a su mantenimiento y su meta, en una regla.
+function reglaKcal(a) {
+  const o = a.objetivo, m = a.mantenimiento;
+  if (!m) return '';
+  const marcas = [{ v: m, t: 'Mantenimiento', c: 'r-mant' }];
+  if (a.comeMedia) marcas.push({ v: a.comeMedia, t: 'Comes', c: 'r-come' });
+  if (o && o.kcal) marcas.push({ v: o.kcal, t: 'Tu meta', c: 'r-meta' });
+  const ideal = a.comerPara && o ? [a.comerPara - 75, a.comerPara + 75] : null;
+  const vs = marcas.map((q) => q.v).concat(ideal || []);
+  const lo = Math.floor((Math.min(...vs) - 200) / 100) * 100, hi = Math.ceil((Math.max(...vs) + 200) / 100) * 100;
+  const pos = (v) => (v - lo) / (hi - lo) * 100;
+  marcas.sort((q, w) => q.v - w.v);
+  const etiqueta = (q, i) => {
+    const px = pos(q.v), lado = px < 18 ? 'izq' : px > 82 ? 'dcha' : '';
+    return `<div class="r-marca ${q.c} ${i % 2 ? 'abajo' : 'arriba'} ${lado}" style="left:${px.toFixed(1)}%"><small>${q.t}</small><b>${miles(redondea(q.v, 10))}</b></div>`;
+  };
+  const nombreIdeal = o && o.tipo === 'volumen' ? 'Ideal para crecer' : o && o.tipo === 'definicion' ? 'Ideal para definir' : 'Para mantenerte';
+  const b = a.balance;
+  return `<div class="regla-kcal">
+    <p class="r-titulo">Calorías al día${a.datos === null ? ' <span>(mantenimiento por fórmula)</span>' : ''}</p>
+    <div class="r-zona">
+      ${marcas.map(etiqueta).join('')}
+      <div class="r-pista"><i class="r-def" style="width:${pos(m).toFixed(1)}%"></i><i class="r-sup" style="left:${pos(m).toFixed(1)}%"></i>
+        ${ideal ? `<i class="r-ideal" style="left:${pos(ideal[0]).toFixed(1)}%;width:${(pos(ideal[1]) - pos(ideal[0])).toFixed(1)}%"></i>` : ''}
+        <span class="r-lado izq">◀ bajas</span><span class="r-lado dcha">subes ▶</span></div>
+    </div>
+    ${ideal ? `<p class="r-ley"><i></i>${nombreIdeal}: ${miles(redondea(a.comerPara, 10))} kcal</p>` : ''}
+    ${b !== null ? `<p class="r-balance"><b class="${b >= 0 ? 'sube' : 'baja'}">${b >= 0 ? '+' : '−'}${miles(Math.abs(redondea(b, 10)))} kcal</b> ${b >= 0 ? 'sobre' : 'bajo'} tu mantenimiento${a.semana !== null ? ` → <b class="${a.semana >= 0 ? 'sube' : 'baja'}">${kgSemana(a.semana)}</b>` : ''}</p>`
+      : !a.hayComida ? '<p class="r-balance">Comes: falta una semana apuntada entera</p>' : ''}
+  </div>`;
+}
+
+// Lo que ha comido cada semana, con su mantenimiento y su meta como líneas.
+function barrasSemanas(a) {
+  if (a.semanas.filter((q) => q.media !== null).length < 2) return '';
+  const o = a.objetivo, lineas = [];
+  if (a.mantenimiento) lineas.push(['gs-mant', a.mantenimiento, 'mant.']);
+  if (o && o.kcal) lineas.push(['gs-meta', o.kcal, 'meta']);
+  const vs = a.semanas.filter((q) => q.media !== null).map((q) => q.media).concat(lineas.map((l) => l[1]));
+  const base = Math.max(0, Math.floor((Math.min(...vs) - 300) / 100) * 100), top = Math.ceil((Math.max(...vs) + 150) / 100) * 100;
+  const W = 340, H = 150, L = 6, R = 62, T = 14, B = 22, ancho = (W - L - R) / a.semanas.length;
+  const y = (v) => (T + (top - v) / (top - base) * (H - T - B)).toFixed(1);
+  const barras = a.semanas.map((q, i) => {
+    const cx = (L + ancho * i + ancho / 2).toFixed(1);
+    const etiqueta = i % 2 === a.semanas.length % 2 ? '' : `<text class="gp-eje" x="${cx}" y="${H - 6}" text-anchor="middle">${fechaMes(q.desde)}</text>`;
+    if (q.media === null) return `${etiqueta}<text class="gp-eje" x="${cx}" y="${H - B - 4}" text-anchor="middle">–</text>`;
+    return `<rect class="gs-barra" x="${(+cx - ancho * 0.33).toFixed(1)}" y="${y(q.media)}" width="${(ancho * 0.66).toFixed(1)}" height="${(H - B - +y(q.media)).toFixed(1)}" rx="4"/>
+      <text class="gs-valor" x="${cx}" y="${(+y(q.media) - 4).toFixed(1)}" text-anchor="middle">${miles(redondea(q.media, 10))}</text>${etiqueta}`;
+  }).join('');
+  return `<div class="grafica-semanas"><p class="r-titulo">Lo que comes cada semana <span>(media al día)</span></p>
+    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Calorías por semana">${barras}
+    ${lineas.map(([c, v, t]) => `<line class="${c}" x1="${L}" x2="${W - R + 4}" y1="${y(v)}" y2="${y(v)}"/><text class="${c}-t" x="${W - 2}" y="${(+y(v) + 3.5).toFixed(1)}" text-anchor="end">${t} ${miles(redondea(v, 10))}</text>`).join('')}</svg></div>`;
+}
+
+// Lo que ya ha conseguido: medallas pequeñas.
+function logrosSalud(a) {
+  const l = [];
+  if (a.racha >= 3) l.push(['🔥', a.racha, 'días seguidos apuntando']);
+  if (a.peso && a.prot) l.push(['💪', `${a.protDias}/7`, 'días con tu proteína']);
+  if (a.pasos7) l.push(['👟', miles(redondea(a.pasos7, 10)), 'pasos al día']);
+  if (a.pasos10k) l.push(['🌳', `${a.pasos10k}/7`, 'días de +10.000 pasos']);
+  if (a.act7.entrenos) l.push(['🏋️‍♀️', a.act7.entrenos, a.act7.entrenos === 1 ? 'entreno en 7 días' : 'entrenos en 7 días']);
+  for (const q of a.fuerza.suben.slice(0, 2)) l.push(['📈', `+${Math.round(q.cambio * 100)} %`, q.ej.toLowerCase()]);
+  return l.length ? `<ul class="logros-salud">${l.slice(0, 6).map(([e, v, t]) => `<li><span>${e}</span><b>${v}</b><small>${esc(t)}</small></li>`).join('')}</ul>` : '';
+}
+
 const ETIQUETA_DIA = { cuenta: 'Cuenta', fuera: 'No cuenta', sospechoso: 'Parece incompleto' };
 
 function pintarSalud() {
   const s = estado.salud || { dias: {} };
   const hayDatos = s.dias && Object.keys(s.dias).length;
   const a = analizarSalud(s, estado.filas, hoyIso()), o = a.objetivo, p = a.perfil;
-  const formulario = `<div class="objetivo-salud"><p>Tu objetivo</p>
+  const formulario = `<details class="ajustes-salud"${o ? '' : ' open'}><summary>⚙️ Tu objetivo${o ? `: ${NOMBRE_OBJETIVO[o.tipo]}${o.peso ? ` · ${kgTexto(o.peso)}` : ''}${o.kcal ? ` · ${miles(o.kcal)} kcal` : ''}` : ''}</summary>
     <div class="opciones-objetivo">${Object.keys(NOMBRE_OBJETIVO).map((t) => `<button type="button" data-objetivo="${t}" aria-pressed="${!!(o && o.tipo === t)}">${NOMBRE_OBJETIVO[t]}</button>`).join('')}</div>
     <div class="campos-salud">
       <label>Peso meta<input id="peso-objetivo" inputmode="decimal" placeholder="kg" value="${o && o.peso ? num(o.peso) : ''}"></label>
-      <label>Kg por semana<input id="ritmo-objetivo" inputmode="decimal" placeholder="${a.ritmo !== null ? num(Math.round(a.ritmo * 100) / 100) : 'recomendado'}" value="${o && o.ritmo !== null && o.ritmo !== undefined ? num(o.ritmo) : ''}"></label>
       <label>Kcal al día<input id="kcal-objetivo" inputmode="numeric" placeholder="${a.comerPara ? redondea(a.comerPara, 10) : 'kcal'}" value="${o && o.kcal ? o.kcal : ''}"></label>
+      <label>Kg por semana<input id="ritmo-objetivo" inputmode="decimal" placeholder="${a.ritmo !== null ? num(Math.round(a.ritmo * 100) / 100) : 'auto'}" value="${o && o.ritmo !== null && o.ritmo !== undefined ? num(o.ritmo) : ''}"></label>
       <label>Edad<input id="edad-perfil" inputmode="numeric" placeholder="años" value="${p.edad || ''}"></label>
       <label>Altura<input id="altura-perfil" inputmode="numeric" placeholder="cm" value="${p.altura || ''}"></label>
     </div>
-    <button type="button" class="guardar-salud" data-objetivo="">Guardar</button>
-    <p class="pie">Kg por semana: en positivo para subir, en negativo para bajar. Vacío, el recomendado: +0,25 % de tu peso en volumen, −0,5 % en definición. Kcal al día: las que tienes puestas en MyFitnessPal (tu iPhone no las manda).</p></div>`;
+    <button type="button" class="guardar-salud" data-objetivo="">Guardar</button></details>`;
   if (!hayDatos) {
     return `<h2 class="gorda seccion">Comida, peso y pasos</h2>
-      <section class="tarjeta-salud"><p>Aquí verás tus pasos del Apple Watch, tu peso de Libra y tu comida de MyFitnessPal, cruzados con tus entrenos: tu mantenimiento, si estás en déficit o en superávit, cuándo llegarías a tu peso y cómo responde tu fuerza. Todavía no ha llegado nada de Salud: Cesarlópodo tiene que conectarlo en tu iPhone.</p>${formulario}</section>`;
+      <section class="tarjeta-salud"><p>Aún no ha llegado nada de Salud. 🌱</p>${formulario}</section>`;
   }
-  const texto = analisisTexto(a), titular = titularSalud(a), ideas = ideasSalud(a);
+  const titular = titularSalud(a), frases = frasesSalud(a), idea = ideaSalud(a);
   const motiva = MOTIVA_SALUD[Math.round(Date.parse(`${hoyIso()}T12:00:00Z`) / 864e5) % MOTIVA_SALUD.length];
-  const cifra = (t, v, sub) => `<div><small>${t}</small><b>${v}</b><span>${sub || ''}</span></div>`;
-  const cifras = [
-    a.peso && cifra('Peso', `${num(Math.round(a.peso * 10) / 10)} kg`, a.semana !== null ? kgSemana(a.semana) : ''),
-    a.pasos7 && cifra('Pasos al día', miles(redondea(a.pasos7, 10)), 'última semana'),
-    a.comeMedia && cifra('Comes', kcalTexto(a.comeMedia), 'de media al día'),
-    o && o.kcal && cifra('Tu meta', kcalTexto(o.kcal), 'al día, la tuya'),
-    a.hayComida && a.comerPara && estadoObjetivo(a) !== 'bien' && !(o && o.kcal && Math.abs(o.kcal - a.comerPara) < 100) && cifra('Para tu objetivo', kcalTexto(a.comerPara), 'al día')
-  ].filter(Boolean);
   return `<h2 class="gorda seccion">Comida, peso y pasos</h2>
     <section class="tarjeta-salud">
       <div class="titular-salud"><b>${esc(titular.t)}</b><span>${esc(titular.s)}</span></div>
-      <div class="cifras-salud">${cifras.join('')}</div>
-      ${lineaPeso(a.tend, o && o.peso)}
-      <h3 class="sub-salud">Cómo vas</h3>
-      <ul class="consejos">${texto.map((c) => `<li>${esc(c)}</li>`).join('')}</ul>
-      ${ideas.length ? `<h3 class="sub-salud">Ideas para esta semana</h3><ul class="ideas-salud">${ideas.map((c) => `<li>${esc(c)}</li>`).join('')}</ul>` : ''}
+      ${barraObjetivo(a)}
+      ${graficaPeso(a, estado.rangoPeso || '6m')}
+      ${reglaKcal(a)}
+      ${barrasSemanas(a)}
+      ${logrosSalud(a)}
+      ${frases.length ? `<ul class="consejos">${frases.map((c) => `<li>${esc(c)}</li>`).join('')}</ul>` : ''}
+      ${idea ? `<p class="idea-salud">${esc(idea)}</p>` : ''}
       <p class="cesar">${esc(motiva)}<br>Cesarlópodo</p>
-      ${a.comida28.length ? `<details class="dias-comida"${a.fuera.length ? ' open' : ''}><summary>Tus días de comida</summary>
-        <p class="pie">Toca un día para que no cuente (una cena fuera sin apuntar, vacaciones…) o para recuperarlo. Los muy por debajo de lo normal se apartan solos.</p>
-        <ul>${a.comida28.slice().reverse().slice(0, 21).map((d) => `<li><button type="button" class="dia-${d.estado}" data-dia-comida="${d.fecha}" data-estado="${d.estado}"><span>${fechaCorta(d.fecha).slice(0, -3)}</span><b>${miles(d.kcal)} kcal</b><em>${ETIQUETA_DIA[d.estado]}</em></button></li>`).join('')}</ul></details>` : ''}
+      ${a.comida28.length ? `<details class="dias-comida"><summary>📅 Tus días de comida</summary>
+        <p class="pie">Toca un día para que no cuente.</p>
+        <ul>${a.comida28.slice().reverse().slice(0, 21).map((d) => `<li><button type="button" class="dia-${d.estado}" data-dia-comida="${d.fecha}" data-estado="${d.estado}"><span>${fechaMes(d.fecha)}</span><b>${miles(d.kcal)} kcal</b><em>${ETIQUETA_DIA[d.estado]}</em></button></li>`).join('')}</ul></details>` : ''}
       ${formulario}
-      <details class="como-se-calcula"><summary>Cómo se calcula</summary>
-        <p>Tu mantenimiento se calcula de dos formas. Por fórmula: Mifflin-St Jeor con tu edad, altura y peso, más lo que gastan tus pasos y tus entrenos de pesas, más la digestión. Y por tus datos: lo que comes de media en las últimas cuatro semanas, corregido por lo que hace tu peso (cada kilo son unas 7.700 kcal). Cuantos más días completos tienes, más manda lo segundo: es tu cuerpo real, no una media de la población.</p>
-        <p>El peso usa la misma tendencia que Libra, para que un día de retención no cambie nada. Los días sin nada apuntado no cuentan, y los que parecen incompletos se apartan solos. Tu fuerza compara tu mejor serie de cada ejercicio en las últimas cuatro semanas con las cuatro anteriores.</p>
-        <p>Último día recibido de Salud: ${a.ultimo ? fechaCorta(a.ultimo) : '—'}.</p></details>
     </section>`;
 }

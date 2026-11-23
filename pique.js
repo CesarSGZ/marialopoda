@@ -257,7 +257,7 @@ function resultadoTest(r) {
     <h2 class="gorda">Test de ${esc(b.m.nombre.toLowerCase())}</h2>
     <p class="cifra">${libre ? '' : '≈'}${p.por} %</p>
     <p>${libre ? '' : 'Estimación con polea o máquina, que nunca pasa del 75 % porque cada una pesa distinto. '}Superas al ${libre ? '' : '≈'}${p.por} % de las mujeres que entrenan en ${esc(r.ejercicio.toLowerCase())}: ${DE_REPES.has(b.tipo) ? `${miles(mejor)} repes seguidas` : `1RM estimado de ${miles(mejor)} kg`}, nivel ${p.nivel < 0 ? 'empezando' : NOMBRE_NIVEL[p.nivel].toLowerCase()}.</p>
-    <p>Ya sale en tu mapa de fuerza, en Progreso.</p>
+    <p>Ya sale en tu mapa de fuerza, en la pestaña Fuerza.</p>
     <button type="button" class="principal" data-accion="cerrar">Seguir</button>
   </div>`;
 }
