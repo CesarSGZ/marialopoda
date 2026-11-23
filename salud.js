@@ -30,7 +30,7 @@ async function mandarSalud(cuerpo) {
 const leerCampo = (id) => { const v = parseFloat(String(($('#' + id) || {}).value || '').replace(',', '.')); return Number.isFinite(v) ? v : null; };
 function guardarObjetivo(tipo) {
   const s = estado.salud || { dias: {} }, antes = s.objetivo || {};
-  const objetivo = { tipo: tipo || antes.tipo || 'mantener', peso: leerCampo('peso-objetivo') ?? antes.peso ?? null, ritmo: leerCampo('ritmo-objetivo') ?? null };
+  const objetivo = { tipo: tipo || antes.tipo || 'mantener', peso: leerCampo('peso-objetivo') ?? antes.peso ?? null, ritmo: leerCampo('ritmo-objetivo') ?? null, kcal: leerCampo('kcal-objetivo') ?? null };
   if (tipo && tipo !== antes.tipo) objetivo.ritmo = null; // al cambiar de objetivo, vuelve al ritmo recomendado
   const perfil = { edad: leerCampo('edad-perfil') ?? (s.perfil || {}).edad ?? null, altura: leerCampo('altura-perfil') ?? (s.perfil || {}).altura ?? null };
   estado.salud = { ...s, objetivo, perfil }; guardar('salud', estado.salud);
@@ -335,11 +335,12 @@ function pintarSalud() {
     <div class="campos-salud">
       <label>Peso meta<input id="peso-objetivo" inputmode="decimal" placeholder="kg" value="${o && o.peso ? num(o.peso) : ''}"></label>
       <label>Kg por semana<input id="ritmo-objetivo" inputmode="decimal" placeholder="${a.ritmo !== null ? num(Math.round(a.ritmo * 100) / 100) : 'recomendado'}" value="${o && o.ritmo !== null && o.ritmo !== undefined ? num(o.ritmo) : ''}"></label>
+      <label>Kcal al día<input id="kcal-objetivo" inputmode="numeric" placeholder="${a.comerPara ? redondea(a.comerPara, 10) : 'kcal'}" value="${o && o.kcal ? o.kcal : ''}"></label>
       <label>Edad<input id="edad-perfil" inputmode="numeric" placeholder="años" value="${p.edad || ''}"></label>
       <label>Altura<input id="altura-perfil" inputmode="numeric" placeholder="cm" value="${p.altura || ''}"></label>
     </div>
     <button type="button" class="guardar-salud" data-objetivo="">Guardar</button>
-    <p class="pie">Kg por semana: en positivo para subir, en negativo para bajar. Vacío, el recomendado: +0,25 % de tu peso en volumen, −0,5 % en definición.</p></div>`;
+    <p class="pie">Kg por semana: en positivo para subir, en negativo para bajar. Vacío, el recomendado: +0,25 % de tu peso en volumen, −0,5 % en definición. Kcal al día: las que tienes puestas en MyFitnessPal (tu iPhone no las manda).</p></div>`;
   if (!hayDatos) {
     return `<h2 class="gorda seccion">Comida, peso y pasos</h2>
       <section class="tarjeta-salud"><p>Aquí verás tus pasos del Apple Watch, tu peso de Libra y tu comida de MyFitnessPal, cruzados con tus entrenos: tu mantenimiento, si estás en déficit o en superávit, cuándo llegarías a tu peso y cómo responde tu fuerza. Todavía no ha llegado nada de Salud: Cesarlópodo tiene que conectarlo en tu iPhone.</p>${formulario}</section>`;
@@ -351,7 +352,8 @@ function pintarSalud() {
     a.peso && cifra('Peso', `${num(Math.round(a.peso * 10) / 10)} kg`, a.semana !== null ? kgSemana(a.semana) : ''),
     a.pasos7 && cifra('Pasos al día', miles(redondea(a.pasos7, 10)), 'última semana'),
     a.comeMedia && cifra('Comes', kcalTexto(a.comeMedia), 'de media al día'),
-    a.hayComida && a.comerPara && estadoObjetivo(a) !== 'bien' && cifra('Para tu objetivo', kcalTexto(a.comerPara), 'al día')
+    o && o.kcal && cifra('Tu meta', kcalTexto(o.kcal), 'al día, la tuya'),
+    a.hayComida && a.comerPara && estadoObjetivo(a) !== 'bien' && !(o && o.kcal && Math.abs(o.kcal - a.comerPara) < 100) && cifra('Para tu objetivo', kcalTexto(a.comerPara), 'al día')
   ].filter(Boolean);
   return `<h2 class="gorda seccion">Comida, peso y pasos</h2>
     <section class="tarjeta-salud">
