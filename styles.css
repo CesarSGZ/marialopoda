@@ -751,8 +751,8 @@ button.notita { background: linear-gradient(135deg, #FFF4F8, #FFE0EC); }
 .l-tend { width: 14px; height: 3px; border-radius: 2px; background: var(--chicle); }
 .l-prev { width: 14px; height: 0; border-top: 2px dashed var(--chicle); }
 .l-meta { width: 14px; height: 0; border-top: 2px dashed var(--amarillo); }
-.gp-rangos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 10px; }
-.gp-rangos button { min-height: 36px; border-radius: 10px; background: var(--ciruela); font-size: 13.5px; font-weight: 700; }
+.gp-rangos { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 10px; }
+.gp-rangos button { min-height: 36px; border-radius: 10px; background: var(--ciruela); font-size: 12.5px; font-weight: 700; }
 .gp-rangos button[aria-pressed="true"] { background: var(--chicle); color: var(--berenjena); }
 .r-titulo { margin: 0 0 4px; font-weight: 800; font-size: 15px; }
 .r-titulo span { font-weight: 600; font-size: 12px; color: var(--tinta-2); }
@@ -794,3 +794,22 @@ button.notita { background: linear-gradient(135deg, #FFF4F8, #FFE0EC); }
 .idea-salud { margin: 0 0 12px; padding: 10px 12px; border-radius: 14px; background: var(--berenjena); font-size: 14.5px; line-height: 1.4; }
 .r-fuente { margin: 0 0 6px; font-size: 12px; line-height: 1.35; color: var(--tinta-2); }
 .gp-punto.rara { fill: none; stroke: var(--tinta-2); stroke-width: 1.2; opacity: .8; }
+.fase-salud, .plan-salud { margin: 0 0 12px; padding: 12px 12px 10px; border-radius: 16px; background: var(--berenjena); }
+.fase-cifras { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 6px 0; }
+.fase-cifras div { padding: 8px 10px; border-radius: 12px; background: var(--ciruela); }
+.fase-cifras b { display: block; font-size: 22px; line-height: 1.1; }
+.fase-cifras small { font-size: 11.5px; color: var(--tinta-2); }
+.fase-veredicto { margin: 6px 0; padding: 8px 10px; border-radius: 12px; background: linear-gradient(135deg, rgba(255,125,176,.25), rgba(255,197,49,.18)); font-weight: 700; font-size: 14.5px; line-height: 1.35; }
+.fase-sub { margin: 8px 0 4px; font-size: 12px; font-weight: 700; color: var(--tinta-2); }
+.fase-musculos { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; }
+.fase-musculos li { display: grid; grid-template-columns: 104px 1fr 46px; align-items: center; gap: 6px; font-size: 13px; }
+.fase-musculos b { text-align: right; font-size: 13px; }
+.fase-barra { position: relative; height: 10px; border-radius: 5px; background: var(--ciruela-2); }
+.fase-barra::after { content: ''; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: rgba(255,255,255,.35); }
+.fase-barra i { position: absolute; top: 0; bottom: 0; border-radius: 5px; }
+.fase-barra .mas { background: var(--verde); }
+.fase-barra .menos { background: var(--chicle); }
+.plan-meta { display: block; margin: 10px 0 2px; font-size: 13px; color: var(--tinta-2); }
+.plan-meta b { color: var(--tinta); font-size: 16px; }
+.plan-meta input { display: block; width: 100%; margin-top: 4px; accent-color: var(--chicle); }
+.plan-res { margin: 8px 0 0; padding: 10px 12px; border-radius: 12px; background: var(--ciruela); font-size: 15px; line-height: 1.45; }

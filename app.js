@@ -53,7 +53,9 @@ const estado = {
   pique: leer('pique', null),
   carlitos: leer('carlitos', null),
   salud: leer('salud', null),
-  rangoPeso: leer('rangoPeso', '6m'),
+  rangoPeso: leer('rangoPeso', 'auto'),
+  planFase: null,
+  planPeso: null,
   serieElegida: {},
   verMas: false,
   editando: null,
@@ -1396,6 +1398,8 @@ document.addEventListener('click', (ev) => {
   if (t.dataset.test) return empezarTest(t.dataset.test);
   if (t.dataset.objetivo !== undefined) return guardarObjetivo(t.dataset.objetivo);
   if (t.dataset.rangoPeso) return cambiarRangoPeso(t.dataset.rangoPeso);
+  if (t.dataset.planFase) return elegirPlanFase(t.dataset.planFase);
+  if (t.dataset.planEmpezar) return empezarPlan(t.dataset.planEmpezar);
   if (t.dataset.diaComida) return marcarDia(t.dataset.diaComida, t.dataset.estado);
   if (t.dataset.cam) return pasoCaminadora(t.dataset.cam, +t.dataset.v);
   if (t.dataset.pasoMedida) {
@@ -1447,6 +1451,7 @@ document.addEventListener('click', (ev) => {
 // Mover la barra del tiempo del bosque detiene la reproducción y lleva a esa semana.
 document.addEventListener('input', (ev) => {
   if (['cinc', 'cvel', 'cmin'].includes(ev.target.id)) return actualizarKmCaminadora();
+  if (ev.target.id === 'plan-peso') return moverPlanPeso(ev.target.value);
   if (ev.target.id !== 'tiempo-bosque') return undefined;
   pararBosque();
   verBosqueEn(+ev.target.value);

@@ -30,7 +30,9 @@ async function mandarSalud(cuerpo) {
 const leerCampo = (id) => { const v = parseFloat(String(($('#' + id) || {}).value || '').replace(',', '.')); return Number.isFinite(v) ? v : null; };
 function guardarObjetivo(tipo) {
   const s = estado.salud || { dias: {} }, antes = s.objetivo || {};
-  const objetivo = { tipo: tipo || antes.tipo || 'mantener', peso: leerCampo('peso-objetivo') ?? antes.peso ?? null, ritmo: leerCampo('ritmo-objetivo') ?? null, kcal: leerCampo('kcal-objetivo') ?? null };
+  const nuevo = tipo || antes.tipo || 'mantener';
+  const objetivo = { tipo: nuevo, peso: leerCampo('peso-objetivo') ?? antes.peso ?? null, ritmo: leerCampo('ritmo-objetivo') ?? null, kcal: leerCampo('kcal-objetivo') ?? null,
+    desde: nuevo === antes.tipo ? antes.desde || null : hoyIso() }; // cambiar de fase la empieza hoy
   if (tipo && tipo !== antes.tipo) objetivo.ritmo = null; // al cambiar de objetivo, vuelve al ritmo recomendado
   const perfil = { edad: leerCampo('edad-perfil') ?? (s.perfil || {}).edad ?? null, altura: leerCampo('altura-perfil') ?? (s.perfil || {}).altura ?? null };
   estado.salud = { ...s, objetivo, perfil }; guardar('salud', estado.salud);
@@ -228,10 +230,20 @@ function analizarSalud(salud, filas, hoy) {
   const seisMeses = tend.filter(([d]) => d >= desplazar(hoy, -182) && Object.keys(dias).some((x) => x <= d && x >= desplazar(d, -14) && dias[x].peso));
   const inicio = objetivo && objetivo.peso && seisMeses.length && objetivo.tipo !== 'mantener'
     ? seisMeses.reduce((m, p) => ((objetivo.tipo === 'volumen' ? p[1] < m[1] : p[1] > m[1]) ? p : m)) : null;
+  // La fase actual: desde el día que la empezó (o, si no consta, desde el punto de partida de su peso).
+  const desdeFase = objetivo ? objetivo.desde || (inicio ? inicio[0] : null) : null;
+  const pesoEn = (d) => {
+    const cerca = Object.keys(dias).filter((x) => dias[x].peso && Math.abs(Date.parse(x) - Date.parse(d)) <= 7 * 864e5).map((x) => dias[x].peso);
+    return cerca.length ? medianaSalud(cerca) : null;
+  };
+  const fase = desdeFase && desdeFase <= hoy ? {
+    desde: desdeFase, dias: Math.round((Date.parse(hoy) - Date.parse(desdeFase)) / 864e5),
+    kg: peso && pesoEn(desdeFase) !== null ? peso - pesoEn(desdeFase) : null, musculos: fuerzaDesde(filas, desdeFase, hoy)
+  } : null;
   const kgConMeta = objetivo && objetivo.kcal && mantenimiento && hayComida && confianza !== 'baja' ? (objetivo.kcal - mantenimiento) * 7 / KCAL_KG : null;
   const pico = ultimaPesada && ultimaPesada >= desplazar(hoy, -2) && peso ? dias[ultimaPesada].peso - peso : null;
   return {
-    fuente, noCuadra, pesadasRaras: recta ? recta.raras : [], comeAntes, pesoHace, peso_datos,
+    fase, fuente, noCuadra, pesadasRaras: recta ? recta.raras : [], comeAntes, pesoHace, peso_datos,
     suelo, enSuelo: sinSuelo !== null && sinSuelo < suelo, kcalFinde, kcalSemana, huecosFinde, huecosSemana, pico, discrepancia: datos !== null && formula !== null ? datos - formula : null,
     hayComida, llegaComida: Object.keys(dias).some((d) => dias[d].kcal > 0), dias, objetivo, perfil, peso, tend, semana, comida28, fuera, sinApuntar, cuentan: cuentan14.length, comeMedia,
     prot: macro('prot'), carb: macro('carb'), grasa: macro('grasa'), pasos30: rango(hoy, 30).map((d) => [d, (dias[d] && dias[d].pasos) || 0]),
@@ -308,7 +320,14 @@ const MOTIVA_SALUD = [
 const MES_CORTO = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const fechaMes = (d) => `${+d.slice(8)} ${MES_CORTO[+d.slice(5, 7) - 1]}`;
 const diasEntre = (a, b) => Math.round((Date.parse(b) - Date.parse(a)) / 864e5);
-const RANGOS_PESO = { '3m': ['3 meses', 91], '6m': ['6 meses', 182], '1a': ['1 año', 365], todo: ['Todo', 0] };
+const RANGOS_PESO = { auto: ['Ahora', null], '3m': ['3 meses', 91], '6m': ['6 meses', 182], '1a': ['1 año', 365], todo: ['Todo', 0] };
+// «Ahora»: desde que se pesa con constancia (sin huecos de más de 10 días), entre 4 semanas y 3 meses.
+function diasConstancia(todas, hoy) {
+  if (!todas.length) return 91;
+  let i = todas.length - 1;
+  while (i > 0 && diasEntre(todas[i - 1][0], todas[i][0]) <= 10) i--;
+  return Math.max(28, Math.min(91, diasEntre(todas[i][0], hoy) + 7));
+}
 
 // Hacia dónde va su objetivo: de dónde salió, dónde está y cuánto falta.
 function barraObjetivo(a) {
@@ -328,7 +347,7 @@ function barraObjetivo(a) {
 function graficaPeso(a, rangoSel) {
   const o = a.objetivo, hoy = a.hoy, todas = a.pesadasTodas;
   if (!todas.length) return '';
-  const nDias = (RANGOS_PESO[rangoSel] || RANGOS_PESO['6m'])[1];
+  const nDias = rangoSel === 'auto' || !RANGOS_PESO[rangoSel] ? diasConstancia(todas, hoy) : RANGOS_PESO[rangoSel][1];
   const desde = nDias ? desplazar(hoy, -nDias) : todas[0][0];
   const pts = todas.filter(([d]) => d >= desde);
   // La línea es la media de las pesadas de alrededor (±7 días, pesan más las cercanas). Solo se dibuja entre su
@@ -507,16 +526,143 @@ function pintarSalud() {
     <section class="tarjeta-salud">
       <div class="titular-salud"><b>${esc(titular.t)}</b><span>${esc(titular.s)}</span></div>
       ${barraObjetivo(a)}
-      ${graficaPeso(a, estado.rangoPeso || '6m')}
+      ${graficaPeso(a, estado.rangoPeso || 'auto')}
+      ${tarjetaFase(a)}
       ${reglaKcal(a)}
       ${barrasSemanas(a)}
       ${logrosSalud(a)}
       ${frases.length ? `<ul class="consejos">${frases.map((c) => `<li>${esc(c)}</li>`).join('')}</ul>` : ''}
       ${idea ? `<p class="idea-salud">${esc(idea)}</p>` : ''}
+      ${planificador(a)}
       <p class="cesar">${esc(motiva)}<br>Cesarlópodo</p>
       ${a.comida28.length ? `<details class="dias-comida"><summary>📅 Tus días de comida</summary>
         <p class="pie">Toca un día para que no cuente.</p>
         <ul>${a.comida28.slice().reverse().slice(0, 21).map((d) => `<li><button type="button" class="dia-${d.estado}" data-dia-comida="${d.fecha}" data-estado="${d.estado}"><span>${fechaMes(d.fecha)}</span><b>${miles(d.kcal)} kcal</b><em>${ETIQUETA_DIA[d.estado]}</em></button></li>`).join('')}</ul></details>` : ''}
       ${formulario}
     </section>`;
+}
+
+// ---------- Su fase: qué ha cambiado desde que empezó y qué hacer después ----------
+const NOMBRE_FASE = { volumen: 'volumen', definicion: 'definición', mantener: 'mantenimiento' };
+const EMOJI_FASE = { volumen: '🌱', definicion: '🔥', mantener: '⚖️' };
+
+// Cómo ha cambiado su fuerza por músculo entre el principio de la fase y ahora: mejor 1RM estimado de cada ejercicio
+// (la mediana de cada sesión, para que una errata no cuente) en las 4 semanas de alrededor del inicio frente a las 4 últimas.
+function fuerzaDesde(filas, desde, hoy) {
+  if (typeof MUSCULOS === 'undefined') return [];
+  const ini0 = desplazar(desde, -28), ini1 = desplazar(desde, 6), ya = desplazar(hoy, -27);
+  const sesiones = new Map(); // ej → fecha → [e1rm]
+  for (const f of filas) {
+    const d = f[F.FECHA];
+    if (!((d >= ini0 && d <= ini1) || (d >= ya && d <= hoy)) || SIN_LASTRE[f[F.EJ]]) continue;
+    const v = e1rmDe(+f[F.KG], +f[F.REPS]);
+    if (!v) continue;
+    const s = sesiones.get(f[F.EJ]) || new Map();
+    s.set(d, (s.get(d) || []).concat(v)); sesiones.set(f[F.EJ], s);
+  }
+  const cambio = (ej) => {
+    const s = sesiones.get(ej);
+    if (!s) return null;
+    let antes = 0, ahora = 0, nAntes = 0, nAhora = 0;
+    for (const [d, l] of s) { const v = medianaSalud(l); if (d >= ya) { ahora = Math.max(ahora, v); nAhora++; } else { antes = Math.max(antes, v); nAntes++; } }
+    if (nAntes < 2 || nAhora < 2) return null;
+    // En pocos meses, más de un 20 % arriba o abajo no es fuerza: es otra forma de apuntar (una mancuerna en vez de
+    // las dos, otra máquina). No se cuenta.
+    const c = ahora / antes - 1;
+    return Math.abs(c) <= 0.2 ? c : null;
+  };
+  return MUSCULOS.map((m) => {
+    const l = m.ej.map(([ej]) => cambio(ej)).filter((v) => v !== null);
+    return l.length ? { nombre: m.nombre, cambio: mediaSalud(l) } : null;
+  }).filter(Boolean).sort((p, q) => q.cambio - p.cambio);
+}
+
+function tarjetaFase(a) {
+  const o = a.objetivo;
+  if (!o || !a.fase) return '';
+  const { desde, dias } = a.fase, tipo = o.tipo;
+  const cab = `<p class="r-titulo">${EMOJI_FASE[tipo]} Tu ${NOMBRE_FASE[tipo]} <span>· desde ${o.desde ? 'el' : `tu peso ${tipo === 'definicion' ? 'más alto' : 'más bajo'}, el`} ${fechaMes(desde)} (${dias < 14 ? `${dias} días` : `${Math.round(dias / 7)} semanas`})</span></p>`;
+  if (dias < 21) return `<div class="fase-salud">${cab}<p class="fase-veredicto">Llevas poquito: en ${21 - dias} días te enseño cómo responden tus músculos. 💛</p></div>`;
+  const m = a.fase.musculos, suben = m.filter((x) => x.cambio >= 0.02).length, aguantan = m.filter((x) => x.cambio > -0.03).length;
+  const kg = a.fase.kg;
+  let veredicto = '';
+  if (m.length >= 2 && kg !== null) {
+    if (tipo === 'volumen') veredicto = kg > 0.2 && suben >= m.length / 2 ? 'Subes de peso y de fuerza a la vez: tus músculos están creciendo. 🌱💪'
+      : kg > 0.2 ? (m[0].cambio >= 0.02 ? `Subes de peso y tu ${m.filter((x) => x.cambio >= 0.02).slice(0, 2).map((x) => x.nombre.toLowerCase()).join(' y ')} ya ${suben === 1 ? 'está' : 'están'} más fuerte${suben === 1 ? '' : 's'}. 🌱 Al resto le falta un empujón: descanso y proteína.` : 'Subes de peso; la fuerza llegará: cuida descanso y proteína. 🌱')
+      : 'Tu peso aún no sube: para crecer, un poco más de comida.';
+    else if (tipo === 'definicion') veredicto = kg < -0.2 && aguantan >= m.length * 0.7 ? `Bajas ${kgTexto(-kg)} y mantienes la fuerza: lo que pierdes es sobre todo grasa. 🔥`
+      : kg < -0.2 ? 'Bajas, pero pierdes algo de fuerza: suaviza un poco el déficit y entrena pesado.' : 'Tu peso aún no baja: ajusta un poco la comida o suma pasos.';
+    else veredicto = suben >= m.length / 2 ? 'Mismo peso y más fuerte: recomposición, de lo mejor que hay. 💪' : 'Estable de peso y de fuerza. 🌿';
+  }
+  const max = Math.max(0.1, ...m.map((x) => Math.abs(x.cambio)));
+  const barras = m.slice(0, 8).map((x) => {
+    const w = Math.min(50, Math.abs(x.cambio) / max * 50), pos = x.cambio >= 0;
+    return `<li><span>${esc(x.nombre)}</span><div class="fase-barra"><i class="${pos ? 'mas' : 'menos'}" style="${pos ? 'left:50%' : `left:${(50 - w).toFixed(1)}%`};width:${w.toFixed(1)}%"></i></div><b class="${pos ? 'sube' : 'baja'}">${pos ? '+' : '−'}${Math.abs(Math.round(x.cambio * 100))} %</b></li>`;
+  }).join('');
+  return `<div class="fase-salud">${cab}
+    <div class="fase-cifras">
+      ${kg !== null ? `<div><b class="${kg >= 0 ? 'sube' : 'baja'}">${kg >= 0 ? '+' : '−'}${kgTexto(Math.abs(kg))}</b><small>de peso</small></div>` : ''}
+      ${m.length ? `<div><b>${tipo === 'definicion' ? aguantan : suben}/${m.length}</b><small>${tipo === 'definicion' ? 'músculos con la fuerza intacta' : 'músculos más fuertes'}</small></div>` : ''}
+    </div>
+    ${veredicto ? `<p class="fase-veredicto">${esc(veredicto)}</p>` : ''}
+    ${m.length ? `<p class="fase-sub">Fuerza por músculo desde el inicio</p><ul class="fase-musculos">${barras}</ul>` : '<p class="fase-sub">Cuando entrenes unas semanas más, aquí verás tu fuerza músculo a músculo.</p>'}
+  </div>`;
+}
+
+// Lo que pasaría con otra fase (o con otra meta): cuánto comer, a qué ritmo y cuándo llegaría.
+function calcularPlan(a, tipo, meta) {
+  if (!a.mantenimiento || !a.peso) return null;
+  const ritmo = RITMO_RECOMENDADO[tipo] / 100 * a.peso;
+  const kcal = Math.max(a.suelo, redondea(a.mantenimiento + ritmo * KCAL_KG / 7, 10));
+  const real = (kcal - a.mantenimiento) * 7 / KCAL_KG; // con el suelo, el ritmo puede quedar más lento
+  const falta = tipo === 'mantener' ? 0 : meta - a.peso;
+  const semanas = real && falta && Math.sign(falta) === Math.sign(real) ? falta / real : null;
+  return { kcal, ritmo: real, llega: semanas ? desplazar(a.hoy, Math.round(semanas * 7)) : null, semanas };
+}
+function metaPorDefecto(a, tipo) {
+  const o = a.objetivo;
+  if (o && o.tipo === tipo && o.peso) return o.peso;
+  return Math.round((a.peso + (tipo === 'volumen' ? 2 : tipo === 'definicion' ? -2 : 0)) * 2) / 2;
+}
+function textoPlan(a, tipo, meta) {
+  const p = calcularPlan(a, tipo, meta);
+  if (!p) return 'Faltan datos para calcularlo.';
+  if (tipo === 'mantener') return `<b>${miles(p.kcal)} kcal</b> al día para quedarte en ${kgTexto(a.peso)}.`;
+  const dir = tipo === 'volumen' ? meta > a.peso + 0.2 : meta < a.peso - 0.2;
+  if (!dir) return tipo === 'volumen' ? 'Elige una meta por encima de tu peso.' : 'Elige una meta por debajo de tu peso.';
+  return `<b>${miles(p.kcal)} kcal</b> al día → <b>${kgSemana(p.ritmo)}</b><br>Llegas a ${kgTexto(meta)} hacia el <b>${p.llega ? `${fechaMes(p.llega)} ${p.llega.slice(2, 4)}` : '—'}</b>${p.semanas ? ` (${Math.round(p.semanas)} semanas)` : ''}`;
+}
+function planificador(a) {
+  if (!a.mantenimiento || !a.peso) return '';
+  const o = a.objetivo, tipo = estado.planFase || (o && o.tipo === 'volumen' ? 'definicion' : 'volumen');
+  const meta = estado.planPeso ?? metaPorDefecto(a, tipo), lo = Math.floor(a.peso - 8), hi = Math.ceil(a.peso + 8);
+  return `<div class="plan-salud" id="plan-salud">
+    <p class="r-titulo">🧭 Planea tu siguiente fase</p>
+    <div class="opciones-objetivo">${Object.keys(NOMBRE_OBJETIVO).map((t) => `<button type="button" data-plan-fase="${t}" aria-pressed="${t === tipo}">${EMOJI_FASE[t]} ${NOMBRE_OBJETIVO[t]}</button>`).join('')}</div>
+    ${tipo === 'mantener' ? '' : `<label class="plan-meta">Meta: <b id="plan-peso-t">${kgTexto(meta)}</b><input type="range" id="plan-peso" min="${lo}" max="${hi}" step="0.5" value="${meta}"></label>`}
+    <p class="plan-res" id="plan-res">${textoPlan(a, tipo, meta)}</p>
+    <button type="button" class="guardar-salud" data-plan-empezar="${tipo}">${o && o.tipo === tipo ? 'Guardar esta meta' : `Empezar mi ${NOMBRE_FASE[tipo]}`}</button>
+    <p class="pie">Luego pon esas kcal en MyFitnessPal.</p>
+  </div>`;
+}
+const analisisActual = () => analizarSalud(estado.salud || { dias: {} }, estado.filas, hoyIso());
+function elegirPlanFase(t) {
+  estado.planFase = t; estado.planPeso = null;
+  const g = $('#plan-salud');
+  if (g) g.outerHTML = planificador(analisisActual());
+}
+function moverPlanPeso(v) {
+  estado.planPeso = +v;
+  const a = analisisActual(), tipo = estado.planFase || (a.objetivo && a.objetivo.tipo === 'volumen' ? 'definicion' : 'volumen');
+  $('#plan-peso-t').textContent = kgTexto(+v);
+  $('#plan-res').innerHTML = textoPlan(a, tipo, +v);
+}
+function empezarPlan(tipo) {
+  const a = analisisActual(), s = estado.salud || { dias: {} }, antes = s.objetivo || {};
+  const meta = tipo === 'mantener' ? null : estado.planPeso ?? metaPorDefecto(a, tipo), p = calcularPlan(a, tipo, meta || a.peso);
+  const objetivo = { tipo, peso: meta, ritmo: null, kcal: p ? p.kcal : antes.kcal ?? null, desde: antes.tipo === tipo && antes.desde ? antes.desde : hoyIso() };
+  estado.salud = { ...s, objetivo }; guardar('salud', estado.salud);
+  estado.planFase = null; estado.planPeso = null;
+  pintar();
+  mandarSalud({ objetivo, perfil: s.perfil || {} });
 }
