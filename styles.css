@@ -708,6 +708,7 @@ button.notita { background: linear-gradient(135deg, #FFF4F8, #FFE0EC); }
 .dias-comida em { font-style: normal; font-size: 12.5px; font-weight: 700; padding: 3px 8px; border-radius: 99px; background: rgba(34, 181, 115, .2); }
 .dias-comida .dia-fuera { opacity: .6; }
 .dias-comida .dia-fuera em { background: rgba(229, 52, 75, .25); }
+.dias-comida .dia-sospechoso { opacity: .6; }
 .dias-comida .dia-sospechoso em { background: rgba(255, 197, 49, .25); }
 
 .titular-salud { margin: 0 0 12px; padding: 14px 16px; border-radius: 18px; background: linear-gradient(135deg, var(--chicle), #FF9CC4); color: var(--berenjena); }
@@ -813,3 +814,20 @@ button.notita { background: linear-gradient(135deg, #FFF4F8, #FFE0EC); }
 .plan-meta b { color: var(--tinta); font-size: 16px; }
 .plan-meta input { display: block; width: 100%; margin-top: 4px; accent-color: var(--chicle); }
 .plan-res { margin: 8px 0 0; padding: 10px 12px; border-radius: 12px; background: var(--ciruela); font-size: 15px; line-height: 1.45; }
+
+/* ---- Últimos entrenos ---- */
+.entreno { margin: 0 0 8px; border-radius: 16px; background: var(--ciruela); overflow: hidden; }
+.entreno summary { display: flex; align-items: center; gap: 12px; padding: 10px 12px; cursor: pointer; list-style: none; }
+.entreno summary::-webkit-details-marker { display: none; }
+.en-fecha { flex: none; width: 48px; padding: 4px 0; border-radius: 12px; background: var(--berenjena); text-align: center; line-height: 1.05; font-size: 12px; color: var(--tinta-2); }
+.en-fecha b { display: block; font-size: 20px; color: var(--chicle); }
+.en-fecha small { display: block; font-size: 11px; }
+.en-cab b { display: block; font-size: 16px; }
+.en-cab small { font-size: 12.5px; color: var(--tinta-2); }
+.entreno ul { list-style: none; margin: 0; padding: 0 12px 10px; }
+.entreno li { padding: 7px 0; border-top: 1px solid var(--ciruela-2); font-size: 14px; }
+.entreno li > span { display: block; font-weight: 700; }
+.entreno li > b { display: block; font-weight: 600; color: var(--tinta-2); font-size: 13.5px; }
+.en-record { font-style: normal; font-size: 11.5px; padding: 1px 6px; border-radius: 99px; background: var(--amarillo); color: var(--berenjena); }
+.en-nota { margin: 4px 0 0; padding: 6px 9px; border-radius: 10px; background: var(--berenjena); font-size: 13.5px; }
+.en-nota small { color: var(--chicle); font-weight: 700; }

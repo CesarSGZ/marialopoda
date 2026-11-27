@@ -238,6 +238,45 @@ function fusionar(servidor) {
   guardar('sueltas', estado.sueltas);
 }
 
+// Sus últimos entrenos: qué hizo, con qué peso y las notas que puso, en la serie donde las puso.
+const DIA_SEMANA = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+function pintarUltimosEntrenos() {
+  const porFecha = new Map();
+  for (const f of estado.filas) if (f[F.FECHA] <= hoyIso()) (porFecha.get(f[F.FECHA]) || porFecha.set(f[F.FECHA], []).get(f[F.FECHA])).push(f);
+  const fechas = [...porFecha.keys()].sort().reverse(), cuantas = estado.verEntrenos ? 12 : 4;
+  const caja = $('#entrenos');
+  if (!caja) return;
+  if (!fechas.length) { caja.innerHTML = '<p class="pie">Cuando entrenes, aquí verás tus últimos entrenos.</p>'; return; }
+  const mejorAntes = (ej, fecha) => Math.max(0, ...estado.filas.filter((f) => f[F.EJ] === ej && f[F.FECHA] < fecha).map((f) => e1rmDe(+f[F.KG], +f[F.REPS])));
+  const sesion = (fecha) => {
+    const filas = porFecha.get(fecha), ejs = [];
+    for (const f of filas) { let e = ejs.find((x) => x.ej === f[F.EJ]); if (!e) ejs.push(e = { ej: f[F.EJ], musc: f[F.MUSC], series: [] }); e.series.push(f); }
+    const nombreRutina = filas[0][F.ORIGEN] === 'app' ? (estado.rutina.find((r) => r.dia === +filas[0][F.DIA]) || {}).nombre : '';
+    const dia = nombreRutina === 'Descanso' ? 'Mini entreno' : nombreRutina;
+    const muscs = [...new Set(ejs.map((e) => e.musc).filter((m) => m && m !== 'Cardio'))];
+    const kg = filas.reduce((t, f) => t + kilosMovidos(f), 0);
+    const lineas = ejs.map((e) => {
+      const ss = e.series.slice().sort((a, b) => +a[F.SERIE] - +b[F.SERIE]);
+      let detalle;
+      if (e.ej === CAMINADORA) detalle = `${num(Math.round(ss.reduce((t, f) => t + datosCaminata(f).km, 0) * 10) / 10)} km`;
+      else if (ES_MEDIDO.has(e.ej)) detalle = `${ss.length} ${ss.length === 1 ? 'vuelta' : 'vueltas'}`;
+      else {
+        const kgs = new Set(ss.map((f) => f[F.KG]));
+        detalle = kgs.size === 1 ? `${ss[0][F.KG] !== '' && +ss[0][F.KG] > 0 ? `${num(+ss[0][F.KG])} kg × ` : 'Sin peso × '}${ss.map((f) => f[F.REPS]).join(' · ')}` : ss.map((f) => `${f[F.KG] !== '' ? num(+f[F.KG]) : ''}×${f[F.REPS]}`).join(' · ');
+      }
+      const top = Math.max(0, ...ss.map((f) => e1rmDe(+f[F.KG], +f[F.REPS]))), record = top > 0 && top > mejorAntes(e.ej, fecha) * 1.005 && mejorAntes(e.ej, fecha) > 0;
+      const notas = ss.filter((f) => notaDe(f).trim()).map((f) => `<p class="en-nota">📝 <small>Serie ${f[F.SERIE]}</small> ${esc(notaDe(f))}</p>`).join('');
+      return `<li><span>${esc(e.ej)}${record ? ' <em class="en-record">⭐ récord</em>' : ''}</span><b>${detalle}</b>${notas}</li>`;
+    }).join('');
+    const [a, m, d] = fecha.split('-'), dow = DIA_SEMANA[new Date(`${fecha}T12:00:00Z`).getUTCDay()];
+    return `<details class="entreno"${fecha === fechas[0] ? ' open' : ''}><summary><span class="en-fecha"><b>${+d}</b>${MESES_CORTOS[+m - 1]}<small>${dow}</small></span>
+      <span class="en-cab"><b>${esc(dia || muscs.slice(0, 2).join(' y ') || 'Entreno')}</b><small>${ejs.length} ${ejs.length === 1 ? 'ejercicio' : 'ejercicios'}${kg ? ` · ${kg >= 1000 ? `${num(Math.round(kg / 100) / 10)} t` : `${miles(kg)} kg`}` : ''}${filas.some((f) => notaDe(f).trim()) ? ' · 📝' : ''}</small></span></summary>
+      <ul>${lineas}</ul></details>`;
+  };
+  caja.innerHTML = fechas.slice(0, cuantas).map(sesion).join('') + (fechas.length > 4 ? `<button type="button" class="ver-mas" data-accion="ver-entrenos">${estado.verEntrenos ? 'Ver menos' : 'Ver más entrenos'}</button>` : '');
+}
+const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+
 // Todas las notas, de la más reciente a la más antigua.
 function todasLasNotas() {
   return estado.filas.filter((f) => notaDe(f).trim()).concat(estado.sueltas)
@@ -1026,10 +1065,13 @@ function pintarConstancia() {
     ${pintarPiqueTabla()}
     <h2 class="gorda seccion">Mini entreno y caminadora</h2>
     <div id="evolucion"></div>
+    <h2 class="gorda seccion">Tus últimos entrenos</h2>
+    <div id="entrenos"></div>
     <h2 class="gorda seccion">Tus notas</h2>
     <div id="notas"></div>`;
   pintarSemanas();
   pintarEvolucionCircuito();
+  pintarUltimosEntrenos();
   pintarNotas();
 }
 
@@ -1434,6 +1476,7 @@ document.addEventListener('click', (ev) => {
     case 'ver-mas': guardarBorrador(); estado.verMas = !estado.verMas; return pintar();
     case 'bosque-play': return reproducirBosque();
     case 'ver-notas': estado.todasNotas = !estado.todasNotas; return pintarNotas();
+    case 'ver-entrenos': estado.verEntrenos = !estado.verEntrenos; return pintarUltimosEntrenos();
     case 'terminar': return terminar();
     case 'cerrar': cerrarCapa(); return undefined;
     case 'cerrar-fin': cerrarCapa(); estado.ejercicio = null; estado.saludo = null; return pintar();
@@ -1457,6 +1500,9 @@ document.addEventListener('input', (ev) => {
   verBosqueEn(+ev.target.value);
   return undefined;
 });
+
+// Si ella pliega o despliega sus días de comida, se respeta al repintar.
+document.addEventListener('toggle', (ev) => { if (ev.target.matches && ev.target.matches('.dias-comida')) estado.diasComidaAbierto = ev.target.open; }, true);
 
 document.addEventListener('focusin', (ev) => { if (ev.target.matches('.numero input')) ev.target.select(); });
 

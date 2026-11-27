@@ -39,13 +39,17 @@ function guardarObjetivo(tipo) {
   pintar();
   mandarSalud({ objetivo, perfil });
 }
-// Un toque cambia el día: cuenta → fuera; fuera → como diga la app; "parece incompleto" → cuenta.
+// Un toque cambia el día. Uno que parece incompleto ya no cuenta: el toque lo confirma («No cuenta» fijo); otro toque
+// lo hace contar; y otro lo vuelve a quitar. La lista se queda abierta donde estaba.
 function marcarDia(fecha, ahora) {
   const s = estado.salud || { dias: {} }, marcas = { ...(s.marcas || {}) };
-  const siguiente = ahora === 'cuenta' ? 'fuera' : ahora === 'sospechoso' ? 'dentro' : null;
-  if (siguiente) marcas[fecha] = siguiente; else delete marcas[fecha];
+  const siguiente = ahora === 'fuera' ? 'dentro' : 'fuera';
+  marcas[fecha] = siguiente;
   estado.salud = { ...s, marcas }; guardar('salud', estado.salud);
+  estado.diasComidaAbierto = true;
+  const p = $('#pantalla'), y = p ? p.scrollTop : 0;
   pintar();
+  if (p) p.scrollTop = y;
   mandarSalud({ marcar: { fecha, estado: siguiente } });
 }
 
@@ -500,7 +504,7 @@ function logrosSalud(a) {
   return l.length ? `<ul class="logros-salud">${l.slice(0, 6).map(([e, v, t]) => `<li><span>${e}</span><b>${v}</b><small>${esc(t)}</small></li>`).join('')}</ul>` : '';
 }
 
-const ETIQUETA_DIA = { cuenta: 'Cuenta', fuera: 'No cuenta', sospechoso: 'Parece incompleto' };
+const ETIQUETA_DIA = { cuenta: 'Cuenta ✓', fuera: 'No cuenta', sospechoso: 'No cuenta · ¿incompleto?' };
 
 function pintarSalud() {
   const s = estado.salud || { dias: {} };
@@ -535,8 +539,8 @@ function pintarSalud() {
       ${idea ? `<p class="idea-salud">${esc(idea)}</p>` : ''}
       ${planificador(a)}
       <p class="cesar">${esc(motiva)}<br>Cesarlópodo</p>
-      ${a.comida28.length ? `<details class="dias-comida"><summary>📅 Tus días de comida</summary>
-        <p class="pie">Toca un día para que no cuente.</p>
+      ${a.comida28.length ? `<details class="dias-comida"${estado.diasComidaAbierto ? ' open' : ''}><summary>📅 Tus días de comida</summary>
+        <p class="pie">Toca un día para cambiar si cuenta. Los que parecen incompletos no cuentan hasta que digas que sí.</p>
         <ul>${a.comida28.slice().reverse().slice(0, 21).map((d) => `<li><button type="button" class="dia-${d.estado}" data-dia-comida="${d.fecha}" data-estado="${d.estado}"><span>${fechaMes(d.fecha)}</span><b>${miles(d.kcal)} kcal</b><em>${ETIQUETA_DIA[d.estado]}</em></button></li>`).join('')}</ul></details>` : ''}
       ${formulario}
     </section>`;
