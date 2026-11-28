@@ -436,7 +436,15 @@ function ultimoAnoMusculos(peso) {
 function pintarUltimoAno() {
   const l = ultimoAnoMusculos(PESO_REFERENCIA);
   if (!l.length) return '';
+  const marcas = [20, 50, 80].map((t) => `<em style="left:${t}%"></em>`).join('');
   return `<h2 class="gorda seccion">Tu último año frente a otras mujeres</h2>
-    <ul class="ano-musculos">${l.map((m) => `<li class="${m.ahora > m.antes ? 'sube' : 'baja'}"><b>${m.ahora > m.antes ? '+' : '−'}${Math.abs(m.ahora - m.antes)}</b><span>${esc(m.nombre)}<small>Superas al ${m.ahora} %; hace un año, al ${m.antes} %</small></span></li>`).join('')}</ul>
-    <p class="pie">En puntos: cuántas mujeres más superas que hace un año. Solo compara los ejercicios que hiciste en los dos años.</p>`;
+    <p class="am-leyenda"><span><i class="am-antes"></i>hace un año</span><span><i class="am-ahora"></i>ahora</span><span>% de mujeres que superas</span></p>
+    <ul class="ano-musculos">${l.map((m) => {
+      const sube = m.ahora > m.antes, lo = Math.min(m.antes, m.ahora), hi = Math.max(m.antes, m.ahora);
+      return `<li class="${sube ? 'sube' : 'baja'}"><span class="am-nombre">${esc(m.nombre)}<small>${m.antes} → <b>${m.ahora} %</b></small></span>
+        <span class="am-pista" aria-label="${esc(m.nombre)}: del ${m.antes} % al ${m.ahora} %">${marcas}<i class="am-tramo" style="left:${lo}%;width:${hi - lo}%"></i><i class="am-antes" style="left:${m.antes}%"></i><i class="am-ahora" style="left:${m.ahora}%"></i></span>
+        <b class="am-dif">${sube ? '+' : '−'}${Math.abs(m.ahora - m.antes)}</b></li>`;
+    }).join('')}</ul>
+    <p class="am-eje"><span></span><span class="am-escala">${[0, 50, 100].map((t) => `<em style="left:${t}%">${t} %</em>`).join('')}</span><span></span></p>
+    <p class="pie">Solo compara ejercicios que hiciste los dos años.</p>`;
 }

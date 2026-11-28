@@ -550,44 +550,85 @@ function pintarSalud() {
 const NOMBRE_FASE = { volumen: 'volumen', definicion: 'definición', mantener: 'mantenimiento' };
 const EMOJI_FASE = { volumen: '🌱', definicion: '🔥', mantener: '⚖️' };
 
-// Cómo ha cambiado su fuerza por músculo entre el principio de la fase y ahora: mejor 1RM estimado de cada ejercicio
-// (la mediana de cada sesión, para que una errata no cuente) en las 4 semanas de alrededor del inicio frente a las 4 últimas.
+// Cómo ha cambiado su fuerza desde el principio de la fase, ejercicio a ejercicio, y con qué series se ha decidido.
+// Cada sesión vale lo que su mejor serie con el peso que más usó ese día (así una errata suelta no cuenta).
+// «Al empezar» son sus sesiones de las 2 semanas de antes y después del inicio; «ahora», las 3 últimas (del último mes).
+// De cada grupo se toma la sesión mediana, y esa es la serie que se enseña: lo que se ve es justo lo que se compara.
+// Un salto de más del 25 % de una sesión a la siguiente es un cambio (otra máquina, una mancuerna en vez de dos,
+// un parón): ese ejercicio se cuenta solo desde ahí y no entra en la media del músculo.
+const e1rmFase = (kg, reps) => (kg > 0 && reps >= 1 && reps <= 20 ? (reps === 1 ? kg : kg * (1 + reps / 30)) : 0);
+function sesionesEjercicio(filas, ej) {
+  const dias = new Map();
+  for (const f of filas) {
+    if (f[F.EJ] !== ej || !(+f[F.KG] > 0) || !(+f[F.REPS] > 0)) continue;
+    if (!dias.has(f[F.FECHA])) dias.set(f[F.FECHA], []);
+    dias.get(f[F.FECHA]).push([+f[F.KG], +f[F.REPS]]);
+  }
+  return [...dias].map(([fecha, series]) => {
+    const veces = new Map();
+    for (const [kg] of series) veces.set(kg, (veces.get(kg) || 0) + 1);
+    const kg = [...veces].sort((a, b) => b[1] - a[1] || b[0] - a[0])[0][0];
+    const reps = Math.max(...series.filter((s) => s[0] === kg).map((s) => s[1]));
+    return { fecha, kg, reps, v: e1rmFase(kg, reps) };
+  }).filter((s) => s.v).sort((a, b) => (a.fecha < b.fecha ? -1 : 1));
+}
+const sesionMediana = (l) => l.slice().sort((a, b) => a.v - b.v)[(l.length - 1) >> 1];
+function cambioEjercicio(filas, ej, desde, hoy) {
+  const todas = sesionesEjercicio(filas, ej).filter((s) => s.fecha >= desplazar(desde, -28) && s.fecha <= hoy);
+  const ya = todas.filter((s) => s.fecha >= desplazar(hoy, -35)).slice(-3);
+  if (!ya.length) return null; // ya no lo hace
+  let ini = todas.filter((s) => s.fecha >= desplazar(desde, -14) && s.fecha <= desplazar(desde, 14));
+  if (ini.length < 2) ini = todas.filter((s) => s.fecha <= desplazar(desde, 28));
+  const b = sesionMediana(ya), a = ini.length ? sesionMediana(ini) : null;
+  if (!a || a.fecha >= ya[0].fecha) return { ej, nuevo: true, ya: b };
+  const cambio = b.v / a.v - 1;
+  // Bajones y saltos de una sesión a la siguiente desde el inicio (más de un 20 %).
+  const saltos = [];
+  for (let i = 1; i < todas.length; i++) {
+    const r = todas[i].v / todas[i - 1].v;
+    if (todas[i].fecha > a.fecha && (r < 0.8 || r > 1.25)) saltos.push({ i, r });
+  }
+  if (Math.abs(cambio) > 0.25) {
+    // Tanto cambio en pocos meses no es fuerza: es otra forma de apuntar. Solo cuenta desde el último salto.
+    const tramo = saltos.length ? todas.slice(saltos[saltos.length - 1].i) : [];
+    if (tramo.length < 2) return { ej, nuevo: true, ya: b };
+    return { ej, corte: tramo[0].fecha, ini: tramo[0], ya: tramo[tramo.length - 1], cambio: tramo[tramo.length - 1].v / tramo[0].v - 1 };
+  }
+  // Si va por debajo, se dice si fue por un bajón puntual y cómo va desde entonces.
+  const bajon = cambio < -0.02 && saltos.filter((x) => x.r < 1).pop();
+  if (bajon) {
+    const desdeAhi = todas[bajon.i];
+    return { ej, ini: a, ya: b, cambio, bajon: { fecha: desdeAhi.fecha, antes: todas[bajon.i - 1], despues: desdeAhi } };
+  }
+  return { ej, ini: a, ya: b, cambio };
+}
 function fuerzaDesde(filas, desde, hoy) {
   if (typeof MUSCULOS === 'undefined') return [];
-  const ini0 = desplazar(desde, -28), ini1 = desplazar(desde, 6), ya = desplazar(hoy, -27);
-  const sesiones = new Map(); // ej → fecha → [e1rm]
-  for (const f of filas) {
-    const d = f[F.FECHA];
-    if (!((d >= ini0 && d <= ini1) || (d >= ya && d <= hoy)) || SIN_LASTRE[f[F.EJ]]) continue;
-    const v = e1rmDe(+f[F.KG], +f[F.REPS]);
-    if (!v) continue;
-    const s = sesiones.get(f[F.EJ]) || new Map();
-    s.set(d, (s.get(d) || []).concat(v)); sesiones.set(f[F.EJ], s);
-  }
-  const cambio = (ej) => {
-    const s = sesiones.get(ej);
-    if (!s) return null;
-    let antes = 0, ahora = 0, nAntes = 0, nAhora = 0;
-    for (const [d, l] of s) { const v = medianaSalud(l); if (d >= ya) { ahora = Math.max(ahora, v); nAhora++; } else { antes = Math.max(antes, v); nAntes++; } }
-    if (nAntes < 2 || nAhora < 2) return null;
-    // En pocos meses, más de un 20 % arriba o abajo no es fuerza: es otra forma de apuntar (una mancuerna en vez de
-    // las dos, otra máquina). No se cuenta.
-    const c = ahora / antes - 1;
-    return Math.abs(c) <= 0.2 ? c : null;
-  };
   return MUSCULOS.map((m) => {
-    const l = m.ej.map(([ej]) => cambio(ej)).filter((v) => v !== null);
-    return l.length ? { nombre: m.nombre, cambio: mediaSalud(l) } : null;
-  }).filter(Boolean).sort((p, q) => q.cambio - p.cambio);
+    const ejs = m.ej.filter(([ej]) => !SIN_LASTRE[ej]).map(([ej]) => cambioEjercicio(filas, ej, desde, hoy)).filter(Boolean);
+    if (!ejs.length) return null;
+    const cuentan = ejs.filter((e) => !e.corte && !e.nuevo);
+    return { nombre: m.nombre, cambio: cuentan.length ? mediaSalud(cuentan.map((e) => e.cambio)) : null, ejs };
+  }).filter(Boolean).sort((p, q) => (q.cambio ?? -9) - (p.cambio ?? -9));
 }
 
+// La prueba de cada músculo, en pequeño: la serie de cuando empezó y la de ahora.
+const serieFase = (x) => `${num(x.kg)}×${x.reps}`;
+function pruebaFase(e) {
+  if (e.nuevo) return `<span class="fb-nuevo">✨ ${esc(e.ej)}: nuevo, ${serieFase(e.ya)}</span>`;
+  const flecha = `<i>${serieFase(e.ini)}</i> → <i class="${e.cambio >= 0.02 ? 'sube' : e.cambio <= -0.02 ? 'baja' : ''}">${serieFase(e.ya)}</i>`;
+  if (e.corte) return `<span class="fb-corte">🔄 ${esc(e.ej)}, apuntado distinto desde el ${fechaMes(e.corte)}: ${flecha}</span>`;
+  const bajon = e.bajon ? `<span class="fb-corte">📉 bajón el ${fechaMes(e.bajon.fecha)} (${serieFase(e.bajon.antes)} → ${serieFase(e.bajon.despues)}); desde ahí ${e.ya.v > e.bajon.despues.v * 1.02 ? 'subiendo ↗' : 'igual'}</span>` : '';
+  return `<span>${esc(e.ej)} ${flecha}</span>${bajon}`;
+}
 function tarjetaFase(a) {
   const o = a.objetivo;
   if (!o || !a.fase) return '';
   const { desde, dias } = a.fase, tipo = o.tipo;
   const cab = `<p class="r-titulo">${EMOJI_FASE[tipo]} Tu ${NOMBRE_FASE[tipo]} <span>· desde ${o.desde ? 'el' : `tu peso ${tipo === 'definicion' ? 'más alto' : 'más bajo'}, el`} ${fechaMes(desde)} (${dias < 14 ? `${dias} días` : `${Math.round(dias / 7)} semanas`})</span></p>`;
   if (dias < 21) return `<div class="fase-salud">${cab}<p class="fase-veredicto">Llevas poquito: en ${21 - dias} días te enseño cómo responden tus músculos. 💛</p></div>`;
-  const m = a.fase.musculos, suben = m.filter((x) => x.cambio >= 0.02).length, aguantan = m.filter((x) => x.cambio > -0.03).length;
+  const todos = a.fase.musculos, m = todos.filter((x) => x.cambio !== null);
+  const suben = m.filter((x) => x.cambio >= 0.02).length, aguantan = m.filter((x) => x.cambio > -0.03).length;
   const kg = a.fase.kg;
   let veredicto = '';
   if (m.length >= 2 && kg !== null) {
@@ -599,9 +640,12 @@ function tarjetaFase(a) {
     else veredicto = suben >= m.length / 2 ? 'Mismo peso y más fuerte: recomposición, de lo mejor que hay. 💪' : 'Estable de peso y de fuerza. 🌿';
   }
   const max = Math.max(0.1, ...m.map((x) => Math.abs(x.cambio)));
-  const barras = m.slice(0, 8).map((x) => {
-    const w = Math.min(50, Math.abs(x.cambio) / max * 50), pos = x.cambio >= 0;
-    return `<li><span>${esc(x.nombre)}</span><div class="fase-barra"><i class="${pos ? 'mas' : 'menos'}" style="${pos ? 'left:50%' : `left:${(50 - w).toFixed(1)}%`};width:${w.toFixed(1)}%"></i></div><b class="${pos ? 'sube' : 'baja'}">${pos ? '+' : '−'}${Math.abs(Math.round(x.cambio * 100))} %</b></li>`;
+  const barras = todos.map((x) => {
+    const pos = x.cambio >= 0, w = x.cambio === null ? 0 : Math.min(50, Math.abs(x.cambio) / max * 50);
+    const barra = x.cambio === null ? '<div class="fase-barra sin"><small>🔄 nuevos: aún sin comparar</small></div>'
+      : `<div class="fase-barra"><i class="${pos ? 'mas' : 'menos'}" style="${pos ? 'left:50%' : `left:${(50 - w).toFixed(1)}%`};width:${w.toFixed(1)}%"></i></div>`;
+    const cifra = x.cambio === null ? '' : `<b class="${pos ? 'sube' : 'baja'}">${pos ? '+' : '−'}${Math.abs(Math.round(x.cambio * 100))} %</b>`;
+    return `<li><span>${esc(x.nombre)}</span>${barra}${cifra}<p class="fase-base">${x.ejs.map(pruebaFase).join('')}</p></li>`;
   }).join('');
   return `<div class="fase-salud">${cab}
     <div class="fase-cifras">
@@ -609,7 +653,7 @@ function tarjetaFase(a) {
       ${m.length ? `<div><b>${tipo === 'definicion' ? aguantan : suben}/${m.length}</b><small>${tipo === 'definicion' ? 'músculos con la fuerza intacta' : 'músculos más fuertes'}</small></div>` : ''}
     </div>
     ${veredicto ? `<p class="fase-veredicto">${esc(veredicto)}</p>` : ''}
-    ${m.length ? `<p class="fase-sub">Fuerza por músculo desde el inicio</p><ul class="fase-musculos">${barras}</ul>` : '<p class="fase-sub">Cuando entrenes unas semanas más, aquí verás tu fuerza músculo a músculo.</p>'}
+    ${todos.length ? `<p class="fase-sub">Fuerza por músculo desde el inicio <span>· kg × repes: al empezar → ahora</span></p><ul class="fase-musculos">${barras}</ul>` : '<p class="fase-sub">Cuando entrenes unas semanas más, aquí verás tu fuerza músculo a músculo.</p>'}
   </div>`;
 }
 

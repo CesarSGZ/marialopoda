@@ -606,12 +606,30 @@ button.hace { display: block; width: 100%; text-align: left; font: inherit; font
 .res.lineas { display: flex; flex-direction: column; gap: 2px; }
 .linea-dato { display: flex; align-items: center; gap: 6px; }
 .linea-dato i { width: 12px; height: 4px; border-radius: 2px; flex: none; }
-.ano-musculos { list-style: none; margin: 0 0 6px; padding: 0; }
-.ano-musculos li { display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 10px; align-items: baseline; padding: 9px 4px; border-bottom: 1px solid var(--ciruela); }
-.ano-musculos b { font-size: 20px; text-align: right; color: var(--amarillo); }
-.ano-musculos .baja b { color: var(--tinta-2); }
-.ano-musculos span { font-weight: 700; }
-.ano-musculos small { display: block; font-weight: 400; color: var(--tinta-2); font-size: 14px; }
+.ano-musculos { list-style: none; margin: 0; padding: 0; }
+.ano-musculos li, .am-eje { display: grid; grid-template-columns: 96px minmax(0, 1fr) 38px; gap: 10px; align-items: center; }
+.ano-musculos li { padding: 7px 2px; border-bottom: 1px solid var(--ciruela); }
+.am-nombre { font-weight: 700; font-size: 14px; line-height: 1.15; }
+.am-nombre small { display: block; font-weight: 400; font-size: 12px; color: var(--tinta-2); }
+.am-nombre small b { color: var(--tinta); }
+.am-pista { position: relative; height: 14px; border-radius: 7px; background: var(--ciruela-2); }
+.am-pista em { position: absolute; top: 2px; bottom: 2px; width: 1px; background: rgba(255,255,255,.18); }
+.am-pista i, .am-leyenda i { position: absolute; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; box-sizing: border-box; }
+.am-pista .am-tramo { width: auto; height: 6px; margin: -3px 0 0; border-radius: 3px; background: linear-gradient(90deg, rgba(255,197,49,.25), var(--amarillo)); }
+.baja .am-tramo { background: rgba(255,255,255,.25); }
+.am-antes { border: 2px solid var(--tinta-2); background: var(--berenjena); }
+.am-ahora { background: var(--amarillo); box-shadow: 0 0 0 2px var(--berenjena); }
+.baja .am-ahora { background: var(--tinta-2); }
+.am-dif { font-size: 19px; text-align: right; color: var(--amarillo); }
+.baja .am-dif { color: var(--tinta-2); }
+.am-leyenda { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0 0 4px; font-size: 12px; color: var(--tinta-2); }
+.am-leyenda span { display: inline-flex; align-items: center; gap: 5px; }
+.am-leyenda i { position: static; margin: 0; }
+.am-eje { margin: 2px 0 8px; padding: 0 2px; }
+.am-escala { position: relative; height: 14px; font-size: 10.5px; color: var(--tinta-2); }
+.am-escala em { position: absolute; top: 0; font-style: normal; white-space: nowrap; transform: translateX(-50%); }
+.am-escala em:first-child { transform: none; }
+.am-escala em:last-child { transform: translateX(-100%); }
 
 .pique { display: block; width: 100%; text-align: left; margin: 0 0 12px; padding: 11px 14px; border-radius: 18px; background: var(--ciruela); color: var(--tinta); font-weight: 600; font-size: 15px; line-height: 1.35; box-shadow: inset 4px 0 0 var(--amarillo); }
 .pique small { display: block; font-size: 12px; font-weight: 700; color: var(--amarillo); letter-spacing: .02em; margin-bottom: 2px; }
@@ -803,7 +821,16 @@ button.notita { background: linear-gradient(135deg, #FFF4F8, #FFE0EC); }
 .fase-veredicto { margin: 6px 0; padding: 8px 10px; border-radius: 12px; background: linear-gradient(135deg, rgba(255,125,176,.25), rgba(255,197,49,.18)); font-weight: 700; font-size: 14.5px; line-height: 1.35; }
 .fase-sub { margin: 8px 0 4px; font-size: 12px; font-weight: 700; color: var(--tinta-2); }
 .fase-musculos { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; }
-.fase-musculos li { display: grid; grid-template-columns: 104px 1fr 46px; align-items: center; gap: 6px; font-size: 13px; }
+.fase-musculos li { display: grid; grid-template-columns: 104px 1fr 46px; align-items: center; gap: 2px 6px; font-size: 13px; padding-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,.06); }
+.fase-sub span { font-weight: 400; }
+.fase-base { grid-column: 1 / -1; margin: 0; display: flex; flex-wrap: wrap; gap: 0 10px; font-size: 11.5px; line-height: 1.35; color: var(--tinta-2); }
+.fase-base i { font-style: normal; font-weight: 700; color: var(--tinta); }
+.fase-base i.sube { color: var(--verde); }
+.fase-base i.baja { color: var(--chicle); }
+.fase-base .fb-corte, .fase-base .fb-nuevo { opacity: .75; }
+.fase-barra.sin { background: none; height: auto; grid-column: 2 / -1; }
+.fase-barra.sin::after { display: none; }
+.fase-barra.sin small { font-size: 11.5px; color: var(--tinta-2); }
 .fase-musculos b { text-align: right; font-size: 13px; }
 .fase-barra { position: relative; height: 10px; border-radius: 5px; background: var(--ciruela-2); }
 .fase-barra::after { content: ''; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: rgba(255,255,255,.35); }
